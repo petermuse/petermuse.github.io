@@ -9,7 +9,6 @@
     <meta property="og:description" content="Peter Muse - Personal Website">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.petermuse.com">
-    <meta name="twitter:description" content="Peter Muse - Personal Website">
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="apple-touch-icon" href="data:,">
@@ -118,7 +117,7 @@
         /* Head canvas container */
         #head-container {
             width: 100%;
-            height: 30vh; /* Increased from 25vh to 30vh to give more head room (pun intended) */
+            height: 30vh; /* Plenty of head room */
             position: relative;
             margin-bottom: -2.5rem;
         }
@@ -243,7 +242,6 @@
             transition: opacity 0.3s ease;
         }
 
-        /* This needs to be added to explicitly activate the glow effect on hover */
         .linkedin-container:hover .linkedin-glow {
             opacity: 0.7;
             animation: glowAnimate 4s linear infinite;
@@ -252,13 +250,13 @@
         .linkedin-svg {
             width: 3rem;
             height: 3rem;
-            fill: white; /* Keeping the logo white as requested */
+            fill: white; 
             transition: transform 0.3s ease;
             z-index: 2;
         }
         
         .linkedin-container:hover .linkedin-svg {
-            transform: scale(1.05); /* Subtle scale effect on hover */
+            transform: scale(1.05); 
         }
 
         @keyframes glowAnimate {
@@ -360,7 +358,7 @@
     <!-- Container for the 3D head -->
     <div id="head-container" role="img" aria-label="Interactive 3D wireframe head animation"></div>
     
-    <!-- State toggle for testing - remove before publishing -->
+    <!-- You found the hidden head state toggles -->
     <div id="state-toggle">
         <h3>Head States</h3>
         <button id="normal-btn" class="active">Normal</button>
@@ -409,13 +407,12 @@
         // Wait for the DOM to be fully loaded
         window.addEventListener('DOMContentLoaded', function() {
             // Initialize Three.js after a short delay to ensure everything's ready
-            // (like waiting for coffee to brew before starting your morning)
             setTimeout(initThreeJS, 100);
         });
 
         function initThreeJS() {
             try {
-                // Check if Three.js is available, otherwise we'd have a face without a head (terrible joke)
+                // Check if Three.js is available
                 if (typeof THREE === 'undefined') {
                     console.error('Three.js library not loaded');
                     return;
@@ -453,7 +450,7 @@
                 // Materials - Making our head glow in fabulous 90s green screen glory
                 const lineMaterial = createLineMaterial();
                 
-                // Enable pixelation for that sweet retro "I've got 4MB of RAM" look
+                // Enable pixelation for that sweet retro look
                 renderer.setPixelRatio(window.devicePixelRatio * 0.7);
 
                 // Animation states - like moods, but for digital heads
@@ -478,7 +475,7 @@
                 const windowHalfX = window.innerWidth / 2;
                 const windowHalfY = window.innerHeight / 2;
 
-                // Create head group - our digital cranium
+                // Create digital cranium
                 const head = new THREE.Group();
                 head.scale.set(1.3, 1.3, 1.3); // Size matters
                 scene.add(head);
@@ -574,12 +571,12 @@
                 
                 // Function to update which button is active - UX matters, even for test controls
                 function updateActiveButton(activeButtonId) {
-                    // Remove active class from all buttons - sorry, you can't all be special
+                    // Remove active class from all buttons
                     document.querySelectorAll('#state-toggle button').forEach(button => {
                         button.classList.remove('active');
                     });
                     
-                    // Add active class to the clicked button - you're the chosen one
+                    // Add active class to the clicked button
                     document.getElementById(activeButtonId).classList.add('active');
                 }
                 
@@ -597,11 +594,11 @@
                 // Set up inactivity check (every second)
                 setInterval(checkInactivity, 1000);
                 
-                // Time checking functions - because our head has a sleep schedule better than most humans
+                // Time checking functions
                 function isCaliforniaSleepTime() {
                     const now = new Date();
                     
-                    // Convert to California time (PT) - where dreams are made (and also tech startups)
+                    // Convert to Hollywood time (PT) - where dreams are made
                     const californiaNow = new Date(now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
                     const hours = californiaNow.getHours();
                     
@@ -610,7 +607,7 @@
                 }
                 
                 function updateStateBasedOnTime() {
-                    // Only change state automatically if auto state is enabled - let the AI do its thing
+                    // Only change state automatically if auto state is enabled
                     if (autoStateEnabled) {
                         const sleepTime = isCaliforniaSleepTime();
                         
@@ -778,9 +775,8 @@
                     return mouth;
                 }
                 
-                // Function to create face outline - more like the reference image
-                function createFaceOutline() {
-                    // Create a more pixelated, blocky outline like in the reference
+                // Function to create face outline
+                function createFaceOutline() {                    
                     const points = [
                         // Top center
                         new THREE.Vector3(0, 1.4, 0),
@@ -835,7 +831,7 @@
                     return line;
                 }
                 
-                // Function to create nose - more like the reference image
+                // Function to create nose
                 function createNose() {
                     const noseGroup = new THREE.Group();
                     
@@ -883,11 +879,11 @@
                     return line;
                 }
                 
-                // Function to create profile lines - add center line back (based on reference image)
+                // Function to create profile lines
                 function createProfileLines() {
                     const group = new THREE.Group();
                     
-                    // Center line (add back based on reference image)
+                    // Center line
                     const centerPoints = [
                         new THREE.Vector3(0, 1.3, 0.6),
                         new THREE.Vector3(0, -0.7, 0.6)
@@ -897,7 +893,7 @@
                     const centerLine = new THREE.Line(centerGeometry, lineMaterial);
                     group.add(centerLine);
                     
-                    // Horizontal line across center (based on reference)
+                    // Horizontal line across center
                     const horizontalPoints = [
                         new THREE.Vector3(-0.6, 0.4, 0.6),
                         new THREE.Vector3(0.6, 0.4, 0.6)
@@ -1079,7 +1075,7 @@
                     return group;
                 }
                 
-                // Window resize event handler - because responsiveness matters
+                // Window resize event handler
                 function onWindowResize() {
                     camera.aspect = container.clientWidth / container.clientHeight;
                     camera.updateProjectionMatrix();
@@ -1090,7 +1086,7 @@
                     windowHalfY = window.innerHeight / 2;
                 }
                 
-                // Animation loop - where the magic happens every frame
+                // Animation loop
                 function animate() {
                     requestAnimationFrame(animate);
                     
@@ -1116,7 +1112,7 @@
                             note.position.y += 0.004;
                             note.position.x += 0.001;
                             
-                            // If note goes too high, reset it - endless concert
+                            // If note goes too high, reset it
                             if (note.position.y > 2.5) {
                                 note.position.y = 1.5;
                                 note.position.x = 0.1 + Math.random() * 0.2;
@@ -1153,7 +1149,7 @@
             } catch (error) {
                 console.error('Error initializing 3D head:', error);
                 document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' + 
-                                    'Oops! The head crashed. 🤯<br>' + error.message + '<br><br>Please reload the page to reboot the digital cranium.</div>';
+                                    'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Please reload the page and prepare to be dazzled.</div>';
             }
         }
     </script>
