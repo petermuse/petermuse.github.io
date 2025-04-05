@@ -5,17 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Peter Muse - Personal Website">
     <meta name="theme-color" content="#000000">
+    <meta property="og:title" content="Peter Muse">
+    <meta property="og:description" content="Peter Muse - Personal Website">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.petermuse.com">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Peter Muse">
+    <meta name="twitter:description" content="Peter Muse - Personal Website">
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="apple-touch-icon" href="data:,">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='50' y='50' font-family='serif' font-size='70' text-anchor='middle' dominant-baseline='middle' fill='%231DACD6'%3EP%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='35' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%231DACD6'%3Ep%3C/text%3E%3Ctext x='65' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%23FF8833'%3Em%3C/text%3E%3C/svg%3E">
     <title>Peter Muse</title>
-    
-    <!-- Preload font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&display=swap" as="style">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&display=swap">
     
-    <!-- Schema.org markup for search engines -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -24,6 +30,13 @@
       "url": "https://www.petermuse.com",
       "sameAs": ["https://www.linkedin.com/in/peter-muse/"]
     }
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-B3KL6DBEM8"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-B3KL6DBEM8');
     </script>
     
     <style>
@@ -38,8 +51,6 @@
             --gold: #FCD667;
             --pink: #FF9999;
         }
-        
-        /* Critical CSS inlined for faster rendering */
         body {
             margin: 0;
             padding: 0;
@@ -52,6 +63,7 @@
             color: white;
             font-family: 'EB Garamond', serif;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         
         .name {
@@ -62,7 +74,7 @@
             padding: 0;
             text-rendering: optimizeLegibility;
             -webkit-font-smoothing: antialiased;
-            will-change: opacity; /* Optimize animations */
+            will-change: opacity;
         }
         
         .first-name, .last-name {
@@ -79,11 +91,10 @@
             animation: letterGlow 2s ease-in-out forwards;
             opacity: 1;
             display: inline-block;
-            will-change: text-shadow, filter; /* Optimize animations */
-            contain: layout; /* Improve rendering performance */
+            will-change: text-shadow, filter;
+            contain: layout;
         }
         
-        /* Kerning pairs - much more precise */
         .letter-p { margin-right: -0.03rem; color: var(--blue); animation-delay: 0.1s; }
         .letter-e1 { margin-left: -0.07rem; margin-right: -0.06rem; color: var(--red); animation-delay: 0.3s; }
         .letter-t { margin-left: -0.08rem; margin-right: -0.08rem; color: var(--green); animation-delay: 0.5s; }
@@ -115,19 +126,19 @@
         
         .name-container {
             opacity: 1;
-            height: auto; /* Prevent layout shift */
-            width: 100%; /* Prevent layout shift */
-            text-align: center; /* Prevent layout shift */
+            height: auto;
+            width: 100%;
+            text-align: center;
         }
         
         .linkedin-container {
             position: static;
             opacity: 0;
             animation: fadeInLinkedIn 1s ease-in-out forwards;
-            animation-delay: 5s; /* Start after name glow animations complete */
+            animation-delay: 2.5s;
             margin-top: 3rem;
-            width: 3rem; /* Fixed width to prevent layout shift */
-            height: 3rem; /* Fixed height to prevent layout shift */
+            width: 3rem;
+            height: 3rem;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -136,10 +147,10 @@
         .linkedin-svg {
             width: 3rem;
             height: 3rem;
-            fill: #c3d8e8; /* Soft blue to match one of the letters */
-            animation: breatheGlow 6s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite; /* Smooth cubic bezier curve */
-            will-change: filter, transform; /* Optimize animations */
-            transition: filter 0.3s ease, transform 0.3s ease; /* Smooth transition for hover effect */
+            fill: #c3d8e8;
+            animation: breatheGlow 6s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
+            will-change: filter, transform;
+            transition: filter 0.3s ease, transform 0.3s ease;
         }
         
         .linkedin-container a:hover .linkedin-svg {
@@ -173,7 +184,6 @@
             }
         }
         
-        /* Additional viewport sizes and orientations */
         @media (max-height: 600px) {
             .name {
                 font-size: 4rem;
@@ -183,7 +193,6 @@
             }
         }
         
-        /* For very small devices in landscape */
         @media (max-height: 400px) and (orientation: landscape) {
             body {
                 flex-direction: row;
@@ -199,11 +208,27 @@
                 margin-left: 2rem;
             }
         }
+        
+        @media (prefers-reduced-motion: reduce) {
+            .letter {
+                animation: none;
+                opacity: 1;
+            }
+            
+            .linkedin-container {
+                animation: none;
+                opacity: 1;
+            }
+            
+            .linkedin-svg {
+                animation: none;
+            }
+        }
     </style>
 </head>
 <body>
-    <header class="name-container">
-        <h1 class="name">
+    <header class="name-container" role="banner">
+        <h1 class="name" aria-label="Peter Muse">
             <div class="first-name">
                 <span class="letter letter-p">P</span>
                 <span class="letter letter-e1">e</span>
@@ -220,7 +245,7 @@
         </h1>
     </header>
     
-    <footer class="linkedin-container">
+    <footer class="linkedin-container" role="contentinfo">
         <a href="https://www.linkedin.com/in/peter-muse/" target="_blank" rel="noopener noreferrer" aria-label="Connect with Peter Muse on LinkedIn">
             <svg class="linkedin-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                 <title>LinkedIn Profile</title>
