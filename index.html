@@ -49,6 +49,7 @@
             --gold: #FCD667;
             --pink: #FF9999;
             --head-color: #00ff00;
+            --linkedin-glow-gradient: linear-gradient(90deg, var(--blue), var(--red), var(--green), var(--yellow), var(--purple), var(--orange), var(--mint), var(--gold), var(--pink), var(--blue));
         }
         body {
             margin: 0;
@@ -223,20 +224,46 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        .linkedin-glow {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--linkedin-glow-gradient);
+            background-size: 200%;
+            border-radius: 10%;
+            opacity: 0;
+            filter: blur(8px);
+            z-index: -1;
+            transition: opacity 0.3s ease;
+        }
+
+        /* This needs to be added to explicitly activate the glow effect on hover */
+        .linkedin-container:hover .linkedin-glow {
+            opacity: 0.7;
+            animation: glowAnimate 4s linear infinite;
         }
         
         .linkedin-svg {
             width: 3rem;
             height: 3rem;
-            fill: #c3d8e8;
-            animation: breatheGlow 6s cubic-bezier(0.445, 0.05, 0.55, 0.95) infinite;
-            will-change: filter, transform;
-            transition: filter 0.3s ease, transform 0.3s ease;
+            fill: white; /* Keeping the logo white as requested */
+            transition: transform 0.3s ease;
+            z-index: 2;
         }
         
-        .linkedin-container a:hover .linkedin-svg {
-            filter: brightness(1.3) drop-shadow(0 0 8px rgba(195, 216, 232, 0.6));
-            transform: scale(1.1);
+        .linkedin-container:hover .linkedin-svg {
+            transform: scale(1.05); /* Subtle scale effect on hover */
+        }
+
+        @keyframes glowAnimate {
+            0% { background-position: 0%; }
+            100% { background-position: 200%; }
         }
         
         @keyframes fadeInLinkedIn {
@@ -362,6 +389,7 @@
         </header>
         
         <footer class="linkedin-container" role="contentinfo">
+            <div class="linkedin-glow"></div>
             <a href="https://www.linkedin.com/in/peter-muse/" target="_self" rel="noopener noreferrer" aria-label="Connect with Peter Muse on LinkedIn">
                 <svg class="linkedin-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <title>LinkedIn Profile</title>
