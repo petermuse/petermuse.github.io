@@ -129,22 +129,33 @@
         .letter-e3 { margin-left: -0.07rem; color: var(--pink); animation-delay: 1.7s; }
         
         @keyframes letterGlow {
-            0% { 
+            0% {
                 text-shadow: none;
-                filter: brightness(1);
             }
-            50% { 
-                text-shadow: 
+            50% {
+                text-shadow:
                     0 0 1px rgba(255, 255, 255, 0.2),
-                    0 0 3px rgba(255, 255, 255, 0.2),
-                    0 0 10px rgba(255, 255, 255, 0.1);
-                filter: brightness(1.15);
+                    0 0 2px rgba(255, 255, 255, 0.15);
             }
-            100% { 
+            100% {
                 text-shadow: none;
-                filter: brightness(1);
             }
         }
+
+        .letter {
+            position: relative;
+            display: inline-block;
+            opacity: 1;
+
+            animation: letterGlow 1.6s ease-out forwards;
+            animation-delay: var(--delay, 0s);
+
+            /* No transform magic here to keep it pristine */
+            will-change: text-shadow;
+            backface-visibility: hidden;
+        }
+
+
         
         .name-container {
             opacity: 1;
@@ -360,6 +371,7 @@
 
                 // Create head group
                 const head = new THREE.Group();
+                head.scale.set(1.2, 1.2, 1.2)
                 scene.add(head);
                 
                 // Create face components
