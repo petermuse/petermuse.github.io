@@ -432,21 +432,29 @@
                 renderer.setClearColor(0x000000, 1);
                 container.appendChild(renderer.domElement);
 
+                // Adaptive line material function
+                function createLineMaterial() {
+                    // Base material with standard settings
+                    const material = new THREE.LineBasicMaterial({
+                        color: 0x00ff00,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    
+                    // For high DPI devices, increase the color brightness and opacity slightly
+                    if (window.devicePixelRatio > 1.5) {
+                        material.color.setRGB(0, 1, 0.2); // Slightly brighter green
+                        material.opacity = 0.9; // Higher opacity
+                    }
+                    
+                    return material;
+                }
+
                 // Materials - Making our head glow in fabulous 90s green screen glory
-                const lineMaterial = new THREE.LineBasicMaterial({
-                    color: 0x00ff00,
-                    transparent: true,
-                    opacity: 0.8
-                });
+                const lineMaterial = createLineMaterial();
                 
                 // Enable pixelation for that sweet retro "I've got 4MB of RAM" look
-                if (window.devicePixelRatio > 1) {
-                // For high-DPI/retina displays, use a higher value but still get retro effect
                 renderer.setPixelRatio(window.devicePixelRatio * 0.7);
-                } else {
-                    // For standard displays, keep your original retro setting
-                    renderer.setPixelRatio(0.5);
-                }
 
                 // Animation states - like moods, but for digital heads
                 const STATE = {
