@@ -440,7 +440,13 @@
                 });
                 
                 // Enable pixelation for that sweet retro "I've got 4MB of RAM" look
-                renderer.setPixelRatio(0.5);
+                if (window.devicePixelRatio > 1) {
+                // For high-DPI/retina displays, use a higher value but still get retro effect
+                renderer.setPixelRatio(window.devicePixelRatio * 0.7);
+                } else {
+                    // For standard displays, keep your original retro setting
+                    renderer.setPixelRatio(0.5);
+                }
 
                 // Animation states - like moods, but for digital heads
                 const STATE = {
