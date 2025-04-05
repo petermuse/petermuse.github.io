@@ -717,7 +717,7 @@
                         eye.add(outline);
                         
                         // Small rectangle inside eye (pupil) - staring into your digital soul
-                        const pupilGeometry = new THREE.PlaneGeometry(0.06, 0.06);
+                        const pupilGeometry = new THREE.PlaneGeometry(0.05, 0.05);
                         const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
                         const pupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
                         pupil.position.set(xOffset, 0.3, 0.1);
@@ -756,7 +756,7 @@
                     } else if (type === 'whistling') {
                         // Small "o" shape for whistling
                         const segments = 16; // More segments for smoother circle
-                        const radius = 0.12; // Slightly larger
+                        const radius = 0.07; // Slightly larger
                         
                         for (let i = 0; i <= segments; i++) {
                             const theta = (i / segments) * Math.PI * 2;
