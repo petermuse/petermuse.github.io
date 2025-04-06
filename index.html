@@ -78,7 +78,7 @@
             color: var(--head-color);
             font-family: monospace;
             z-index: 10;
-            display: flex; /* Keep flex display */
+            display: flex; 
             flex-direction: column;
             gap: 5px;
             display: none;
@@ -157,8 +157,6 @@
             margin-bottom: 0.2rem;
         }
 
-        /* Removed first (redundant) letterGlow animation */
-
         @keyframes letterGlow {
             0% {
                 text-shadow: none;
@@ -184,7 +182,7 @@
             /* No transform magic here to keep it pristine */
             will-change: text-shadow;
             backface-visibility: hidden;
-            contain: layout; /* Added back from original */
+            contain: layout;
         }
 
         .letter-p { margin-right: -0.03rem; color: var(--blue); animation-delay: 0.1s; --delay: 0.1s;}
@@ -442,16 +440,16 @@
                 // Enable pixelation for that sweet retro look
                 renderer.setPixelRatio(window.devicePixelRatio * 0.7);
 
-                // Animation states - like moods, but for digital heads
+                // Animation states - the five emotions humans feel
                 const STATE = {
                     SLEEPING: 'sleeping',
                     WHISTLING: 'whistling',
                     NORMAL: 'normal',
                     GIGGLING: 'giggling',
-                    AWED: 'awed' // <-- NEW STATE ADDED
+                    AWED: 'awed' 
                 };
 
-                // Current state tracking - this head has more personality than many people
+                // Current state tracking
                 let currentState = null;
                 let lastStateChange = Date.now();
                 let lastActivity = Date.now();
@@ -492,14 +490,14 @@
                 const normalMouth = createMouth('normal');
                 const whistlingMouth = createMouth('whistling');
                 const gigglingMouth = createMouth('giggling');
-                const awedMouth = createMouth('awed'); // <-- NEW MOUTH CREATED
+                const awedMouth = createMouth('awed');
                 head.add(normalMouth);
                 head.add(whistlingMouth);
                 head.add(gigglingMouth);
-                head.add(awedMouth); // <-- NEW MOUTH ADDED
+                head.add(awedMouth); 
                 whistlingMouth.visible = false;
                 gigglingMouth.visible = false;
-                awedMouth.visible = false; // <-- NEW MOUTH INVISIBLE BY DEFAULT
+                awedMouth.visible = false; 
 
                 // Create animation elements
                 const zzzGroup = createZzzGroup();
@@ -593,7 +591,7 @@
                     }
                 });
 
-                // --- NEW: LinkedIn Hover Event Listeners ---
+                // --- LinkedIn Hover Event Listeners ---
                 const linkedinContainer = document.querySelector('.linkedin-container');
                 if (linkedinContainer) {
                     linkedinContainer.addEventListener('mouseenter', () => {
@@ -619,17 +617,13 @@
                 } else {
                     console.error("LinkedIn container not found.");
                 }
-                 // --- END NEW ---
 
-
-                // Setup event listeners for state toggle buttons (No changes needed here)
+                // Setup event listeners for state toggle buttons
                 document.getElementById('normal-btn').addEventListener('click', function() {
                     autoStateEnabled = false;
                     switchToState(STATE.NORMAL);
                     updateActiveButton('normal-btn');
                 });
-                // ... (rest of button listeners remain the same)
-
 
                 // Function to update which button is active - UX matters, even for test controls
                 function updateActiveButton(activeButtonId) {
@@ -734,7 +728,6 @@
                     // Update current state - identity crisis averted
                     currentState = newState;
 
-                    // --- UPDATED STATE SWITCH LOGIC ---
                     // Default visibility settings (most states need these)
                     leftEyeOpen.visible = true;
                     rightEyeOpen.visible = true;
@@ -743,11 +736,11 @@
                     normalMouth.visible = false;
                     whistlingMouth.visible = false;
                     gigglingMouth.visible = false;
-                    awedMouth.visible = false; // New mouth hidden by default
+                    awedMouth.visible = false;
                     zzzGroup.visible = false;
                     musicNotesGroup.visible = false;
                     eyebrows.visible = true;
-                    archEyebrows(false); // Reset eyebrows by default
+                    archEyebrows(false); 
 
 
                     if (newState === STATE.SLEEPING) {
@@ -780,10 +773,10 @@
                         awedMouth.visible = true;
                         archEyebrows(true); // Arch eyebrows for awed
                     }
-                     // --- END UPDATED STATE SWITCH LOGIC ---
+
                 }
 
-                // Function to create eye (different states) - No changes needed
+                // Function to create eye (different states)
                 function createEye(xOffset, state) {
                     // ... (Keep existing eye creation logic)
                     const eye = new THREE.Group();
@@ -825,7 +818,7 @@
                     return eye;
                 }
 
-                // Function to create different mouth states - UPDATED
+                // Function to create different mouth states
                 function createMouth(type) {
                     const mouth = new THREE.Group();
                     mouth.position.z = 1;
@@ -843,7 +836,7 @@
                     } else if (type === 'whistling') {
                         // Small "o" shape for whistling
                         const segments = 16; // More segments for smoother circle
-                        const radius = 0.07; // Slightly larger
+                        const radius = 0.07; // Smaller lip radius
 
                         for (let i = 0; i <= segments; i++) {
                             const theta = (i / segments) * Math.PI * 2;
@@ -884,7 +877,7 @@
                     return mouth;
                 }
 
-                // Function to create face outline - No changes needed
+                // Function to create face outline 
                 function createFaceOutline() {
                    // ... (Keep existing face outline logic)
                    const points = [
@@ -941,7 +934,7 @@
                     return line;
                 }
 
-                 // Function to create nose - No changes needed
+                 // Function to create nose 
                 function createNose() {
                    // ... (Keep existing nose logic)
                    const noseGroup = new THREE.Group();
@@ -972,7 +965,7 @@
                 }
 
 
-                // Function to create eyebrows (new function) - No changes needed
+                // Function to create eyebrows (new function) 
                 function createEyebrows() {
                     // ... (Keep existing eyebrow logic)
                      const eyebrowGroup = new THREE.Group();
@@ -1003,7 +996,7 @@
                     return eyebrowGroup;
                 }
 
-                // Function to adjust eyebrow positions - No changes needed
+                // Function to adjust eyebrow positions 
                 function archEyebrows(arched) {
                     // ... (Keep existing eyebrow arching logic)
                     if (arched) {
@@ -1017,7 +1010,7 @@
                     }
                 }
 
-                 // Function to create ZZZ group for sleeping animation - No changes needed
+                 // Function to create ZZZ group for sleeping animation 
                 function createZzzGroup() {
                      // ... (Keep existing ZZZ logic)
                      const group = new THREE.Group();
@@ -1040,7 +1033,7 @@
                     return group;
                 }
 
-                 // Function to create a Z character - No changes needed
+                 // Function to create a Z character 
                 function createZCharacter(size) {
                     // ... (Keep existing Z character logic)
                      const group = new THREE.Group();
@@ -1078,7 +1071,7 @@
                     return group;
                 }
 
-                // Function to create music notes group for whistling animation - No changes needed
+                // Function to create music notes group for whistling animation 
                 function createMusicNotesGroup() {
                    // ... (Keep existing music note logic)
                     const group = new THREE.Group();
@@ -1099,7 +1092,7 @@
                     return group;
                 }
 
-                // Function to create an eighth note - No changes needed
+                // Function to create an eighth note 
                 function createEighthNote(size) {
                     // ... (Keep existing eighth note logic)
                     const group = new THREE.Group();
@@ -1145,7 +1138,7 @@
                     return group;
                 }
 
-                // Function to create a quarter note - No changes needed
+                // Function to create a quarter note 
                 function createQuarterNote(size) {
                     // ... (Keep existing quarter note logic)
                      const group = new THREE.Group();
@@ -1181,7 +1174,7 @@
                     return group;
                 }
 
-                // Window resize event handler - No changes needed
+                // Window resize event handler 
                 function onWindowResize() {
                    // ... (Keep existing resize logic)
                      // Update window half dimensions
