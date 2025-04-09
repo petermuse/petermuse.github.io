@@ -464,10 +464,38 @@
                 let windowHalfX = window.innerWidth / 2; // Initialize here
                 let windowHalfY = window.innerHeight / 2; // Initialize here
 
+                // Reference to the name element
+                const nameElement = document.querySelector('.name');
+                if (!nameElement) {
+                    console.error("Name element '.name' not found!");
+                    return;
+                }
+
                 // Create digital cranium
                 const head = new THREE.Group();
-                head.scale.set(1.3, 1.3, 1.3); // Size matters
+                // head.scale.set(1.3, 1.3, 1.3); // No fixed scale, will be set dynamically
                 scene.add(head);
+
+                // Function to update scale based on text
+                function updateHeadScaleBasedOnText() {
+                    if (!head || !nameElement) return; // Ensure elements exist
+
+                    // Get computed font size in pixels
+                    const computedStyle = window.getComputedStyle(nameElement);
+                    const currentFontSizePx = parseFloat(computedStyle.fontSize);
+
+                    // Define a base font size (e.g., desktop size) and desired base scale
+                    const baseFontSizePx = 104; // ~6.5rem on desktop
+                    const baseHeadScale = 1.3;  // Original scale value
+
+                    // Calculate the new scale relative to the base
+                    let newScale = baseHeadScale * (currentFontSizePx / baseFontSizePx);
+                    
+                    // Optional: Add min/max scale if needed
+                    newScale = Math.max(0.9, Math.min(newScale, 1.8));
+
+                    head.scale.set(newScale, newScale, newScale);
+                }
 
                 // Create face components
                 const eyesGroup = new THREE.Group();
@@ -1176,8 +1204,7 @@
 
                 // Window resize event handler 
                 function onWindowResize() {
-                   // ... (Keep existing resize logic)
-                     // Update window half dimensions
+                    // Update window half dimensions
                     windowHalfX = window.innerWidth / 2;
                     windowHalfY = window.innerHeight / 2;
 
@@ -1185,7 +1212,13 @@
                     camera.aspect = container.clientWidth / container.clientHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(container.clientWidth, container.clientHeight);
+                    
+                    // Update head scale based on text size
+                    updateHeadScaleBasedOnText();
                 }
+
+                // Call resize handler once to set initial size/scale
+                onWindowResize();
 
                 // Animation loop - UPDATED
                 function animate() {
