@@ -437,8 +437,8 @@
                 // Materials - Making our head glow in fabulous 90s green screen glory
                 const lineMaterial = createLineMaterial();
 
-                // Enable pixelation for that sweet retro look
-                renderer.setPixelRatio(window.devicePixelRatio * 0.7);
+                // Set correct pixel ratio
+                renderer.setPixelRatio(window.devicePixelRatio);
 
                 // Animation states - the five emotions humans feel
                 const STATE = {
