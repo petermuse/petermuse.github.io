@@ -20,6 +20,14 @@
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&display=swap" as="style">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&display=swap">
 
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+        "three/examples/jsm/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+      }
+    }
+    </script>
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -387,11 +395,14 @@
         </footer>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-    <script>
+    <script type="module">
         // Head animation created with Claude AI (claude.ai)
         // Wait for the DOM to be fully loaded
+        import * as THREE from 'three';
+        import { Line2 } from 'three/examples/jsm/lines/Line2.js';
+        import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+        import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
+
         window.addEventListener('DOMContentLoaded', function() {
             // Initialize Three.js after a short delay to ensure everything's ready
             setTimeout(initThreeJS, 100);
@@ -404,6 +415,11 @@
                     console.error('Three.js library not loaded');
                     return;
                 }
+                if (typeof LineMaterial === 'undefined' || typeof LineGeometry === 'undefined' || typeof Line2 === 'undefined') {
+                    console.error('Line JSM modules not loaded');
+                    return;
+                }
+
 
                 // Scene, camera, renderer setup
                 const scene = new THREE.Scene();
@@ -432,13 +448,24 @@
                 container.appendChild(renderer.domElement);
 
                 // Standardized line material function with device-independent settings
-                function createLineMaterial() {
-                    const material = new THREE.LineBasicMaterial({
+                function createLineMaterial(rendererInstance) {
+                    const material = new LineMaterial({ // Use imported LineMaterial
                         color: 0x00ff00,
+                        linewidth: 1.5, // Screen-space pixels
                         transparent: true,
-                        opacity: 0.8,
-                        linewidth: 1 // Note: WebGL has limited support for line width
+                        opacity: 0.8
+                        // Note: dashed, dashScale, dashSize, gapSize properties are available for dashed lines
                     });
+                    // Set resolution (important for LineMaterial)
+                    console.log("createLineMaterial - initial container dimensions:", container.clientWidth, container.clientHeight);
+                    let width = container.clientWidth;
+                    let height = container.clientHeight;
+                    if (width === 0 || height === 0) {
+                        console.warn("createLineMaterial: Container dimensions are zero. Setting resolution to default (1,1). This should be corrected by onWindowResize.");
+                        width = 1; // Default non-zero width
+                        height = 1; // Default non-zero height
+                    }
+                    material.resolution.set(width, height);
                     
                     // Apply consistent color brightness regardless of device
                     material.color.setRGB(0, 1, 0.1);
@@ -447,7 +474,7 @@
                 }
 
                 // Materials 
-                const lineMaterial = createLineMaterial();
+                const lineMaterial = createLineMaterial(renderer); // Pass renderer instance
 
                 // Animation states
                 const STATE = {
@@ -819,8 +846,12 @@
                             new THREE.Vector3(xOffset - 0.2, 0.3, 0)
                         ];
 
-                        const outlineGeometry = new THREE.BufferGeometry().setFromPoints(outlinePoints);
-                        const outline = new THREE.Line(outlineGeometry, lineMaterial);
+                        const flattenedOutlinePoints = [];
+                        outlinePoints.forEach(p => flattenedOutlinePoints.push(p.x, p.y, p.z));
+                        const outlineGeometry = new LineGeometry(); // Use imported LineGeometry
+                        outlineGeometry.setPositions(flattenedOutlinePoints);
+                        const outline = new Line2(outlineGeometry, lineMaterial); // Use imported Line2
+                        outline.computeLineDistances();
                         eye.add(outline);
 
                         // Small rectangle inside eye (pupil) - staring into your digital soul
@@ -837,8 +868,12 @@
                             new THREE.Vector3(xOffset + 0.2, 0.3, 0)
                         ];
 
-                        const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                        const line = new THREE.Line(geometry, lineMaterial);
+                        const flattenedPoints = [];
+                        points.forEach(p => flattenedPoints.push(p.x, p.y, p.z));
+                        const geometry = new LineGeometry(); // Use imported LineGeometry
+                        geometry.setPositions(flattenedPoints);
+                        const line = new Line2(geometry, lineMaterial); // Use imported Line2
+                        line.computeLineDistances();
                         eye.add(line);
                     }
 
@@ -897,8 +932,12 @@
                         ];
                     }
 
-                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                    const line = new THREE.Line(geometry, lineMaterial);
+                    const flattenedPoints = [];
+                    points.forEach(p => flattenedPoints.push(p.x, p.y, p.z));
+                    const geometry = new LineGeometry(); // Use imported LineGeometry
+                    geometry.setPositions(flattenedPoints);
+                    const line = new Line2(geometry, lineMaterial); // Use imported Line2
+                    line.computeLineDistances();
                     mouth.add(line);
 
                     return mouth;
@@ -953,8 +992,12 @@
                         new THREE.Vector3(0, 1.4, 0)
                     ];
 
-                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                    const line = new THREE.Line(geometry, lineMaterial);
+                    const flattenedPoints = [];
+                    points.forEach(p => flattenedPoints.push(p.x, p.y, p.z));
+                    const geometry = new LineGeometry(); // Use imported LineGeometry
+                    geometry.setPositions(flattenedPoints);
+                    const line = new Line2(geometry, lineMaterial); // Use imported Line2
+                    line.computeLineDistances();
                     line.position.z = 0.6;
 
                     return line;
@@ -969,9 +1012,13 @@
                         new THREE.Vector3(0, 0.1, 0),
                         new THREE.Vector3(0, -0.15, 0)
                     ];
-
-                    const verticalGeometry = new THREE.BufferGeometry().setFromPoints(verticalPoints);
-                    const verticalLine = new THREE.Line(verticalGeometry, lineMaterial);
+                    
+                    const flattenedVerticalPoints = [];
+                    verticalPoints.forEach(p => flattenedVerticalPoints.push(p.x, p.y, p.z));
+                    const verticalGeometry = new LineGeometry(); // Use imported LineGeometry
+                    verticalGeometry.setPositions(flattenedVerticalPoints);
+                    const verticalLine = new Line2(verticalGeometry, lineMaterial); // Use imported Line2
+                    verticalLine.computeLineDistances();
                     noseGroup.add(verticalLine);
 
                     // Horizontal part
@@ -980,8 +1027,12 @@
                         new THREE.Vector3(0.1, -0.15, 0)
                     ];
 
-                    const horizontalGeometry = new THREE.BufferGeometry().setFromPoints(horizontalPoints);
-                    const horizontalLine = new THREE.Line(horizontalGeometry, lineMaterial);
+                    const flattenedHorizontalPoints = [];
+                    horizontalPoints.forEach(p => flattenedHorizontalPoints.push(p.x, p.y, p.z));
+                    const horizontalGeometry = new LineGeometry(); // Use imported LineGeometry
+                    horizontalGeometry.setPositions(flattenedHorizontalPoints);
+                    const horizontalLine = new Line2(horizontalGeometry, lineMaterial); // Use imported Line2
+                    horizontalLine.computeLineDistances();
                     noseGroup.add(horizontalLine);
 
                     noseGroup.position.z = 1.2;
@@ -1000,8 +1051,12 @@
                         new THREE.Vector3(-0.3, 0.5, 0)
                     ];
 
-                    const leftEyebrowGeometry = new THREE.BufferGeometry().setFromPoints(leftEyebrowPoints);
-                    const leftEyebrow = new THREE.Line(leftEyebrowGeometry, lineMaterial);
+                    const flattenedLeftEyebrowPoints = [];
+                    leftEyebrowPoints.forEach(p => flattenedLeftEyebrowPoints.push(p.x, p.y, p.z));
+                    const leftEyebrowGeometry = new LineGeometry(); // Use imported LineGeometry
+                    leftEyebrowGeometry.setPositions(flattenedLeftEyebrowPoints);
+                    const leftEyebrow = new Line2(leftEyebrowGeometry, lineMaterial); // Use imported Line2
+                    leftEyebrow.computeLineDistances();
                     eyebrowGroup.add(leftEyebrow);
 
                     // Right eyebrow
@@ -1010,8 +1065,12 @@
                         new THREE.Vector3(0.6, 0.5, 0)
                     ];
 
-                    const rightEyebrowGeometry = new THREE.BufferGeometry().setFromPoints(rightEyebrowPoints);
-                    const rightEyebrow = new THREE.Line(rightEyebrowGeometry, lineMaterial);
+                    const flattenedRightEyebrowPoints = [];
+                    rightEyebrowPoints.forEach(p => flattenedRightEyebrowPoints.push(p.x, p.y, p.z));
+                    const rightEyebrowGeometry = new LineGeometry(); // Use imported LineGeometry
+                    rightEyebrowGeometry.setPositions(flattenedRightEyebrowPoints);
+                    const rightEyebrow = new Line2(rightEyebrowGeometry, lineMaterial); // Use imported Line2
+                    rightEyebrow.computeLineDistances();
                     eyebrowGroup.add(rightEyebrow);
 
                     eyebrowGroup.position.z = 1.1;
@@ -1065,8 +1124,12 @@
                         new THREE.Vector3(size/2, size/2, 0)
                     ];
 
-                    const topGeometry = new THREE.BufferGeometry().setFromPoints(topPoints);
-                    const topLine = new THREE.Line(topGeometry, lineMaterial);
+                    const flattenedTopPoints = [];
+                    topPoints.forEach(p => flattenedTopPoints.push(p.x, p.y, p.z));
+                    const topGeometry = new LineGeometry(); // Use imported LineGeometry
+                    topGeometry.setPositions(flattenedTopPoints);
+                    const topLine = new Line2(topGeometry, lineMaterial); // Use imported Line2
+                    topLine.computeLineDistances();
                     group.add(topLine);
 
                     // Diagonal line
@@ -1075,8 +1138,12 @@
                         new THREE.Vector3(-size/2, -size/2, 0)
                     ];
 
-                    const diagGeometry = new THREE.BufferGeometry().setFromPoints(diagPoints);
-                    const diagLine = new THREE.Line(diagGeometry, lineMaterial);
+                    const flattenedDiagPoints = [];
+                    diagPoints.forEach(p => flattenedDiagPoints.push(p.x, p.y, p.z));
+                    const diagGeometry = new LineGeometry(); // Use imported LineGeometry
+                    diagGeometry.setPositions(flattenedDiagPoints);
+                    const diagLine = new Line2(diagGeometry, lineMaterial); // Use imported Line2
+                    diagLine.computeLineDistances();
                     group.add(diagLine);
 
                     // Bottom line
@@ -1085,8 +1152,12 @@
                         new THREE.Vector3(size/2, -size/2, 0)
                     ];
 
-                    const bottomGeometry = new THREE.BufferGeometry().setFromPoints(bottomPoints);
-                    const bottomLine = new THREE.Line(bottomGeometry, lineMaterial);
+                    const flattenedBottomPoints = [];
+                    bottomPoints.forEach(p => flattenedBottomPoints.push(p.x, p.y, p.z));
+                    const bottomGeometry = new LineGeometry(); // Use imported LineGeometry
+                    bottomGeometry.setPositions(flattenedBottomPoints);
+                    const bottomLine = new Line2(bottomGeometry, lineMaterial); // Use imported Line2
+                    bottomLine.computeLineDistances();
                     group.add(bottomLine);
 
                     return group;
@@ -1128,11 +1199,15 @@
                             0
                         ));
                     }
+                    const flattenedHeadPoints = [];
+                    headPoints.forEach(p => flattenedHeadPoints.push(p.x, p.y, p.z));
+                    const headGeometry = new LineGeometry(); // Use imported LineGeometry
+                    headGeometry.setPositions(flattenedHeadPoints);
+                    const headLine = new Line2(headGeometry, lineMaterial); // Use imported Line2
+                    headLine.computeLineDistances();
+                    headLine.rotation.z = Math.PI / 4; // Tilt the note head
+                    group.add(headLine);
 
-                    const headGeometry = new THREE.BufferGeometry().setFromPoints(headPoints);
-                    const head = new THREE.Line(headGeometry, lineMaterial);
-                    head.rotation.z = Math.PI / 4; // Tilt the note head
-                    group.add(head);
 
                     // Note stem
                     const stemPoints = [
@@ -1140,8 +1215,12 @@
                         new THREE.Vector3(size * 0.25, size * 1.5, 0)
                     ];
 
-                    const stemGeometry = new THREE.BufferGeometry().setFromPoints(stemPoints);
-                    const stem = new THREE.Line(stemGeometry, lineMaterial);
+                    const flattenedStemPoints = [];
+                    stemPoints.forEach(p => flattenedStemPoints.push(p.x, p.y, p.z));
+                    const stemGeometry = new LineGeometry(); // Use imported LineGeometry
+                    stemGeometry.setPositions(flattenedStemPoints);
+                    const stem = new Line2(stemGeometry, lineMaterial); // Use imported Line2
+                    stem.computeLineDistances();
                     group.add(stem);
 
                     // Note flag
@@ -1150,8 +1229,12 @@
                         new THREE.Vector3(size * 0.8, size * 1.2, 0)
                     ];
 
-                    const flagGeometry = new THREE.BufferGeometry().setFromPoints(flagPoints);
-                    const flag = new THREE.Line(flagGeometry, lineMaterial);
+                    const flattenedFlagPoints = [];
+                    flagPoints.forEach(p => flattenedFlagPoints.push(p.x, p.y, p.z));
+                    const flagGeometry = new LineGeometry(); // Use imported LineGeometry
+                    flagGeometry.setPositions(flattenedFlagPoints);
+                    const flag = new Line2(flagGeometry, lineMaterial); // Use imported Line2
+                    flag.computeLineDistances();
                     group.add(flag);
 
                     return group;
@@ -1174,10 +1257,15 @@
                         ));
                     }
 
-                    const headGeometry = new THREE.BufferGeometry().setFromPoints(headPoints);
-                    const head = new THREE.Line(headGeometry, lineMaterial);
-                    head.rotation.z = Math.PI / 4; // Tilt the note head
-                    group.add(head);
+                    const flattenedHeadPoints = [];
+                    headPoints.forEach(p => flattenedHeadPoints.push(p.x, p.y, p.z));
+                    const headGeometry = new LineGeometry(); // Use imported LineGeometry
+                    headGeometry.setPositions(flattenedHeadPoints);
+                    const headLine = new Line2(headGeometry, lineMaterial); // Use imported Line2
+                    headLine.computeLineDistances();
+                    headLine.rotation.z = Math.PI / 4; // Tilt the note head
+                    group.add(headLine);
+
 
                     // Note stem
                     const stemPoints = [
@@ -1185,8 +1273,12 @@
                         new THREE.Vector3(size * 0.25, size * 1.5, 0)
                     ];
 
-                    const stemGeometry = new THREE.BufferGeometry().setFromPoints(stemPoints);
-                    const stem = new THREE.Line(stemGeometry, lineMaterial);
+                    const flattenedStemPoints = [];
+                    stemPoints.forEach(p => flattenedStemPoints.push(p.x, p.y, p.z));
+                    const stemGeometry = new LineGeometry(); // Use imported LineGeometry
+                    stemGeometry.setPositions(flattenedStemPoints);
+                    const stem = new Line2(stemGeometry, lineMaterial); // Use imported Line2
+                    stem.computeLineDistances();
                     group.add(stem);
 
                     return group;
@@ -1194,6 +1286,7 @@
 
                 // Window resize event handler 
                 function onWindowResize() {
+                    console.log("onWindowResize - container dimensions:", container.clientWidth, container.clientHeight);
                     // Update window half dimensions
                     windowHalfX = window.innerWidth / 2;
                     windowHalfY = window.innerHeight / 2;
@@ -1202,6 +1295,11 @@
                     camera.aspect = container.clientWidth / container.clientHeight;
                     camera.updateProjectionMatrix();
                     renderer.setSize(container.clientWidth, container.clientHeight);
+                    
+                    // Update lineMaterial resolution on resize
+                    if (lineMaterial && lineMaterial.isLineMaterial) {
+                        lineMaterial.resolution.set(container.clientWidth, container.clientHeight);
+                    }
                     
                     // Update head scale based on text size
                     updateHeadScaleBasedOnText();
