@@ -403,6 +403,8 @@
         import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
         import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 
+        let headRaycastTarget; // Declare here for wider scope
+
         window.addEventListener('DOMContentLoaded', function() {
             // Initialize Three.js after a short delay to ensure everything's ready
             setTimeout(initThreeJS, 100);
@@ -427,6 +429,8 @@
                 
                 // Use consistent field of view and near/far planes across all devices
                 const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.matrixAutoUpdate = true; // Explicitly ensure matrixAutoUpdate is on
+                scene.add(camera); // Add camera to the scene
                 
                 // Fixed camera position for consistent view
                 camera.position.z = 5.5;
@@ -514,6 +518,15 @@
                 // Set a fixed, consistent scale that works across all devices
                 const BASE_HEAD_SCALE = 1.3;
                 head.scale.set(BASE_HEAD_SCALE, BASE_HEAD_SCALE, BASE_HEAD_SCALE);
+
+                // Create an invisible sphere for raycasting
+                const sphereRadius = 1.2; // Adjust if necessary
+                const headRaycastGeometry = new THREE.SphereGeometry(sphereRadius, 16, 16); // Default segments are fine
+                const headRaycastMaterial = new THREE.MeshBasicMaterial({ visible: false });
+                headRaycastTarget = new THREE.Mesh(headRaycastGeometry, headRaycastMaterial);
+                headRaycastTarget.name = 'headRaycastTarget'; // Optional: for easier identification in logs
+                head.add(headRaycastTarget);
+                console.log('Created headRaycastTarget:', headRaycastTarget);
                 
                 // Function to maintain consistent head size regardless of container dimensions
                 function updateHeadScaleBasedOnText() {
@@ -568,6 +581,8 @@
                 const eyebrows = createEyebrows();
                 head.add(eyebrows);
 
+                console.log('Head object structure:', head);
+
                 // Variable to hold the giggle interval ID
                 let giggleIntervalId = null;
 
@@ -598,9 +613,53 @@
                 });
 
                 // Add click event listener for giggling
-                container.addEventListener('click', function() {
-                    // Only respond to clicks during waking hours and if not already giggling, sleeping, or awed
-                    if (!isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
+                renderer.domElement.addEventListener('click', function(event) {
+                    console.log('Event target:', event.target);
+                    // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
+                    const mouseVector = new THREE.Vector2();
+                    const rect = event.target.getBoundingClientRect();
+                    console.log('Rect:', rect.left, rect.top, rect.width, rect.height);
+                    console.log('ClientXY:', event.clientX, event.clientY);
+                    mouseVector.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+                    mouseVector.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                    console.log('Mouse vector:', mouseVector.x, mouseVector.y);
+
+                    // Raycasting
+                    const raycaster = new THREE.Raycaster();
+                    raycaster.params.Line = raycaster.params.Line || {};
+                    raycaster.params.Line.threshold = 0.1;
+                    console.log('Raycaster Line threshold:', raycaster.params.Line.threshold);
+                    console.log('Camera Position:', camera.position.x, camera.position.y, camera.position.z);
+                    console.log('Camera Projection Matrix Elements:', camera.projectionMatrix.elements);
+                    console.log('Camera World Matrix Elements:', camera.matrixWorld.elements);
+                    // raycaster.setFromCamera(mouseVector, camera);
+
+                    // Manual Ray Calculation
+                    const rayOrigin = camera.position.clone(); // Ray originates from camera's current position
+                    const rayDirection = new THREE.Vector3(mouseVector.x, mouseVector.y, 0.5); // Start with normalized device coords
+
+                    // Ensure camera matrices are up-to-date for unproject method
+                    // camera.updateProjectionMatrix(); // Usually handled by onWindowResize or renderer
+                    // camera.updateMatrixWorld(true); // Already present and being tested
+
+                    camera.updateMatrixWorld(true); // Force update of camera's world matrix just before unproject
+                    console.log('Camera World Matrix (immediately before unproject):', camera.matrixWorld.elements);
+                    rayDirection.unproject(camera); // Convert from NDC to world space via camera
+                    rayDirection.sub(rayOrigin).normalize(); // Get direction vector from camera to world point and normalize
+
+                    raycaster.set(rayOrigin, rayDirection); // Set the raycaster with this manually computed ray
+                    console.log('Manual ray set. Origin:', rayOrigin, 'Direction:', rayDirection); // Log manual ray
+                    raycaster.camera = camera; // Provide camera reference for LineSegments2 raycasting
+                    console.log('Raycaster camera property has been set:', raycaster.camera !== null); // Verify it's set
+                    const intersects = raycaster.intersectObject(headRaycastTarget, false); // Intersect with the sphere, not recursive
+                    console.log('Intersection result:', intersects);
+                    // const childIntersects = raycaster.intersectObjects(head.children, true);
+                    // console.log('Child Intersection result:', childIntersects);
+                    // const allIntersects = raycaster.intersectObjects(scene.children, true);
+                    // console.log('All Scene Intersection result:', allIntersects);
+
+                    // Only respond to clicks during waking hours and if not already giggling, sleeping, or awed, AND if the click intersects the head
+                    if (intersects.length > 0 && !isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
                         lastActivity = Date.now(); // Count this as activity
 
                         // Clear any existing giggle interval before starting a new one
@@ -1310,6 +1369,7 @@
 
                 // Animation loop - UPDATED
                 function animate() {
+                    camera.updateMatrixWorld(true); // Force update of camera's world matrix each frame
                     requestAnimationFrame(animate);
 
                     // Shared mouse tracking logic (applied unless sleeping)
