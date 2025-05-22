@@ -414,11 +414,13 @@
             try {
                 // Check if Three.js is available
                 if (typeof THREE === 'undefined') {
-                    console.error('Three.js library not loaded');
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                                    'Three.js library not loaded. Please reload the page.</div>';
                     return;
                 }
                 if (typeof LineMaterial === 'undefined' || typeof LineGeometry === 'undefined' || typeof Line2 === 'undefined') {
-                    console.error('Line JSM modules not loaded');
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                                    'Line JSM modules not loaded. Please reload the page.</div>';
                     return;
                 }
 
@@ -461,11 +463,9 @@
                         // Note: dashed, dashScale, dashSize, gapSize properties are available for dashed lines
                     });
                     // Set resolution (important for LineMaterial)
-                    console.log("createLineMaterial - initial container dimensions:", container.clientWidth, container.clientHeight);
                     let width = container.clientWidth;
                     let height = container.clientHeight;
                     if (width === 0 || height === 0) {
-                        console.warn("createLineMaterial: Container dimensions are zero. Setting resolution to default (1,1). This should be corrected by onWindowResize.");
                         width = 1; // Default non-zero width
                         height = 1; // Default non-zero height
                     }
@@ -507,7 +507,8 @@
                 // Reference to the name element
                 const nameElement = document.querySelector('.name');
                 if (!nameElement) {
-                    console.error("Name element '.name' not found!");
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                                    'Name element not found. Please reload the page.</div>';
                     return;
                 }
 
@@ -526,7 +527,6 @@
                 headRaycastTarget = new THREE.Mesh(headRaycastGeometry, headRaycastMaterial);
                 headRaycastTarget.name = 'headRaycastTarget'; // Optional: for easier identification in logs
                 head.add(headRaycastTarget);
-                console.log('Created headRaycastTarget:', headRaycastTarget);
                 
                 // Function to maintain consistent head size regardless of container dimensions
                 function updateHeadScaleBasedOnText() {
@@ -581,8 +581,6 @@
                 const eyebrows = createEyebrows();
                 head.add(eyebrows);
 
-                console.log('Head object structure:', head);
-
                 // Variable to hold the giggle interval ID
                 let giggleIntervalId = null;
 
@@ -614,49 +612,28 @@
 
                 // Add click event listener for giggling
                 renderer.domElement.addEventListener('click', function(event) {
-                    console.log('Event target:', event.target);
                     // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
                     const mouseVector = new THREE.Vector2();
                     const rect = event.target.getBoundingClientRect();
-                    console.log('Rect:', rect.left, rect.top, rect.width, rect.height);
-                    console.log('ClientXY:', event.clientX, event.clientY);
                     mouseVector.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
                     mouseVector.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-                    console.log('Mouse vector:', mouseVector.x, mouseVector.y);
 
                     // Raycasting
                     const raycaster = new THREE.Raycaster();
                     raycaster.params.Line = raycaster.params.Line || {};
                     raycaster.params.Line.threshold = 0.1;
-                    console.log('Raycaster Line threshold:', raycaster.params.Line.threshold);
-                    console.log('Camera Position:', camera.position.x, camera.position.y, camera.position.z);
-                    console.log('Camera Projection Matrix Elements:', camera.projectionMatrix.elements);
-                    console.log('Camera World Matrix Elements:', camera.matrixWorld.elements);
-                    // raycaster.setFromCamera(mouseVector, camera);
 
                     // Manual Ray Calculation
                     const rayOrigin = camera.position.clone(); // Ray originates from camera's current position
                     const rayDirection = new THREE.Vector3(mouseVector.x, mouseVector.y, 0.5); // Start with normalized device coords
 
-                    // Ensure camera matrices are up-to-date for unproject method
-                    // camera.updateProjectionMatrix(); // Usually handled by onWindowResize or renderer
-                    // camera.updateMatrixWorld(true); // Already present and being tested
-
                     camera.updateMatrixWorld(true); // Force update of camera's world matrix just before unproject
-                    console.log('Camera World Matrix (immediately before unproject):', camera.matrixWorld.elements);
                     rayDirection.unproject(camera); // Convert from NDC to world space via camera
                     rayDirection.sub(rayOrigin).normalize(); // Get direction vector from camera to world point and normalize
 
                     raycaster.set(rayOrigin, rayDirection); // Set the raycaster with this manually computed ray
-                    console.log('Manual ray set. Origin:', rayOrigin, 'Direction:', rayDirection); // Log manual ray
                     raycaster.camera = camera; // Provide camera reference for LineSegments2 raycasting
-                    console.log('Raycaster camera property has been set:', raycaster.camera !== null); // Verify it's set
                     const intersects = raycaster.intersectObject(headRaycastTarget, false); // Intersect with the sphere, not recursive
-                    console.log('Intersection result:', intersects);
-                    // const childIntersects = raycaster.intersectObjects(head.children, true);
-                    // console.log('Child Intersection result:', childIntersects);
-                    // const allIntersects = raycaster.intersectObjects(scene.children, true);
-                    // console.log('All Scene Intersection result:', allIntersects);
 
                     // Only respond to clicks during waking hours and if not already giggling, sleeping, or awed, AND if the click intersects the head
                     if (intersects.length > 0 && !isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
@@ -726,7 +703,8 @@
                         }
                     });
                 } else {
-                    console.error("LinkedIn container not found.");
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                                    'LinkedIn container not found. Please reload the page.</div>';
                 }
 
                 // Setup event listeners for state toggle buttons
@@ -1345,7 +1323,6 @@
 
                 // Window resize event handler 
                 function onWindowResize() {
-                    console.log("onWindowResize - container dimensions:", container.clientWidth, container.clientHeight);
                     // Update window half dimensions
                     windowHalfX = window.innerWidth / 2;
                     windowHalfY = window.innerHeight / 2;
@@ -1439,7 +1416,6 @@
                     renderer.render(scene, camera);
                 }
             } catch (error) {
-                console.error('Error initializing 3D head:', error);
                 document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
                                     'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Please reload the page and prepare to be dazzled.</div>';
             }
