@@ -139,6 +139,7 @@
             height: 30vh; /* Plenty of head room */
             position: relative;
             margin-bottom: -2.5rem;
+            overflow: visible;
         }
 
         canvas {
@@ -339,8 +340,8 @@
             
             #head-container {
                 width: 100%;
-                height: 40vh;
-                margin-bottom: -1.5rem;
+                height: 30vh;
+                margin-bottom: 0.5rem;
             }
             
             .main-content {
@@ -352,7 +353,7 @@
             }
             
             .linkedin-container {
-                margin-top: 1.5rem;
+                margin-top: 1rem;
                 margin-left: 0;
             }
         }
@@ -379,6 +380,14 @@
             #head-container {
                 height: 50vh;
                 margin-bottom: -4rem;
+            }
+        }
+        
+        /* Tablet landscape with taller viewports */
+        @media (min-width: 768px) and (max-width: 1200px) and (min-height: 600px) and (orientation: landscape) {
+            #head-container {
+                height: 40vh;
+                margin-bottom: -2.5rem;
             }
         }
 
@@ -529,15 +538,24 @@
                     const viewportHeight = window.innerHeight;
                     const isLandscape = viewportWidth > viewportHeight;
                     
-                    // Tablet camera positioning (768px - 1024px)
-                    if (viewportWidth >= 768 && viewportWidth <= 1024) {
-                        // Consistent settings for tablets only
+                    // Phone landscape - check this FIRST
+                    if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
                         camera.position.z = 6.0;
+                        camera.position.y = 0.2;
+                        camera.fov = 40;
+                        camera.updateProjectionMatrix();
+                    }
+                    // Tablet camera positioning (768px - 1200px)
+                    else if (viewportWidth >= 768 && viewportWidth <= 1200) {
+                        // Consistent settings for tablets only
+                        camera.position.z = isLandscape ? 7.0 : 6.0;
+                        camera.position.y = 0;
                         camera.fov = 50;
                         camera.updateProjectionMatrix();
                     } else {
                         // Default for phones and desktop
                         camera.position.z = 5.5;
+                        camera.position.y = 0;
                         camera.fov = 45;
                         camera.updateProjectionMatrix();
                     }
@@ -549,10 +567,15 @@
                     const viewportHeight = window.innerHeight;
                     const isLandscape = viewportWidth > viewportHeight;
                     
-                    // Tablet head positioning (768px - 1024px)
-                    if (viewportWidth >= 768 && viewportWidth <= 1024) {
+                    // Phone landscape mode - check this FIRST
+                    if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
+                        head.position.y = 0.5;
+                    }
+                    // Tablet head positioning (768px - 1200px)
+                    else if (viewportWidth >= 768 && viewportWidth <= 1200) {
                         // Consistent positioning for tablets only
-                        head.position.y = -0.5;
+                        // Consistent positioning for tablets
+                        head.position.y = 0;
                     } else {
                         // Default for phones and desktop
                         head.position.y = 0;
@@ -659,19 +682,19 @@
                         baseScale = 1.5; // Increase head size on retina displays
                     }
                     
-                    // Tablet logic (768px - 1024px) based on orientation
-                    if (viewportWidth >= 768 && viewportWidth <= 1024) {
+                    // Phone landscape mode - check this FIRST
+                    if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
+                        return baseScale * 0.45; // Adjusted size for phone landscape
+                    }
+                    // Tablet logic (768px - 1200px) based on orientation
+                    else if (viewportWidth >= 768 && viewportWidth <= 1200) {
                         if (viewportHeight > viewportWidth) {
                             // Portrait tablet
-                            return baseScale * 1.1;
+                            return baseScale * 1.0; // 10% smaller than 1.1
                         } else {
                             // Landscape tablet
-                            return baseScale * 0.9;
+                            return baseScale * 1.05;
                         }
-                    }
-                    // Phone landscape mode
-                    else if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
-                        return baseScale * 0.6; // Smaller for phone landscape
                     }
                     
                     // Apply responsive scaling
@@ -798,9 +821,14 @@
                     if (event.touches.length === 1) {
                         const touch = event.touches[0];
                         
-                        // Calculate touch position relative to the window center (same coordinate system as mouse)
-                        mouseX = (touch.clientX - windowHalfX) / 50;
-                        mouseY = (touch.clientY - windowHalfY) / 50;
+                        // Get the canvas bounds to properly calculate touch position
+                        const rect = renderer.domElement.getBoundingClientRect();
+                        const canvasCenterX = rect.left + rect.width / 2;
+                        const canvasCenterY = rect.top + rect.height / 2;
+                        
+                        // Calculate touch position relative to the canvas center
+                        mouseX = (touch.clientX - canvasCenterX) / 50;
+                        mouseY = (touch.clientY - canvasCenterY) / 50;
 
                         // If in whistling or awed state, switch back to normal (only if auto state is enabled and not sleeping)
                         if (autoStateEnabled && (currentState === STATE.WHISTLING) && !isCaliforniaSleepTime()) {
@@ -865,8 +893,15 @@
                                 return; // Exit interval function
                             }
 
-                            // Small random head movements for giggling effect
-                            head.position.y = Math.sin((Date.now() - giggleStartTime) * 0.02) * 0.05;
+                            // Small random head movements for giggling effect - adjusted for mobile landscape
+                            const viewportWidth = window.innerWidth;
+                            const viewportHeight = window.innerHeight;
+                            const isLandscape = viewportWidth > viewportHeight;
+                            const isPhoneLandscape = isLandscape && viewportWidth <= 900 && viewportHeight <= 500;
+                            
+                            const baseY = isPhoneLandscape ? 0.5 : (viewportWidth >= 768 && viewportWidth <= 1200) ? 0 : 0;
+                            const giggleOffset = Math.sin((Date.now() - giggleStartTime) * 0.02) * 0.03;
+                            head.position.y = baseY + giggleOffset;
 
                             // Check if we should stop giggling based on time
                             if (Date.now() - giggleStartTime > 2000) { // 2 seconds of giggling
@@ -976,7 +1011,9 @@
 
                 window.addEventListener('resize', onWindowResize);
 
-                // Initial state setup based on time
+                // Initial setup
+                adjustHeadPosition(); // Ensure head is positioned correctly on load
+                adjustCameraPosition(); // Ensure camera is positioned correctly on load
                 updateStateBasedOnTime();
                 if (autoStateEnabled) { // Set initial active button if auto is enabled
                     updateActiveButton('auto-btn');
@@ -1685,7 +1722,15 @@
                                 note.position.x = note.userData.originalX;
                             }
                         }
-                        // Add subtle head bob
+                        // Add subtle head bob - maintain consistent base position
+                        const viewportWidth = window.innerWidth;
+                        const viewportHeight = window.innerHeight;
+                        const isLandscape = viewportWidth > viewportHeight;
+                        const isPhoneLandscape = isLandscape && viewportWidth <= 900 && viewportHeight <= 500;
+                        
+                        // Ensure head stays at correct base position during whistle state
+                        const baseY = isPhoneLandscape ? 0.5 : (viewportWidth >= 768 && viewportWidth <= 1024) ? (isLandscape ? 0.3 : 0) : 0;
+                        head.position.y = baseY;
                         head.rotation.y += Math.sin(time * 0.5) * 0.02; // Adjusted the multiplier
                     } else if (currentState === STATE.GIGGLING) {
                         // Head position is handled by the giggle interval
@@ -1695,6 +1740,14 @@
                          // Mouse tracking handled above
                     } else if (currentState === STATE.NORMAL) {
                          // Mouse tracking handled above
+                         // Ensure head stays at correct base position during normal state
+                         const viewportWidth = window.innerWidth;
+                         const viewportHeight = window.innerHeight;
+                         const isLandscape = viewportWidth > viewportHeight;
+                         const isPhoneLandscape = isLandscape && viewportWidth <= 900 && viewportHeight <= 500;
+                         
+                         const baseY = isPhoneLandscape ? 0.5 : (viewportWidth >= 768 && viewportWidth <= 1024) ? (isLandscape ? 0.3 : 0) : 0;
+                         head.position.y = baseY;
                     }
 
 
