@@ -691,11 +691,16 @@
                     const isLandscape = viewportWidth > viewportHeight;
                     
                     // Base scale that looks good on standard displays
-                    let baseScale = 1.3;
+                    let baseScale = 1.0;
                     
-                    // Adjust for high-DPI displays (like retina MacBook Pro)
+                    // MacBook Pro retina displays (1440x900 scaled, 2880x1800 actual)
+                    if (pixelRatio >= 2 && viewportWidth >= 1200 && viewportWidth <= 1600 && viewportHeight <= 1000) {
+                        return 0.7; // Much smaller for MacBook Pro retina
+                    }
+                    
+                    // General retina displays - reduce size instead of increase
                     if (pixelRatio > 1.5) {
-                        baseScale = 1.5; // Increase head size on retina displays
+                        baseScale = 0.9; // Smaller head size on retina displays
                     }
                     
                     // Phone landscape mode - check this FIRST
@@ -706,18 +711,18 @@
                     else if (viewportWidth >= 768 && viewportWidth <= 1200) {
                         if (viewportHeight > viewportWidth) {
                             // Portrait tablet
-                            return baseScale * 1.0; // 10% smaller than 1.1
+                            return baseScale * 0.8;
                         } else {
                             // Landscape tablet
-                            return baseScale * 1.05;
+                            return baseScale * 0.9;
                         }
                     }
                     
                     // Apply responsive scaling
                     if (viewportWidth <= 480) {
-                        return baseScale * 0.8;
+                        return baseScale * 0.7;
                     } else if (viewportWidth <= 768) {
-                        return baseScale * 0.9;
+                        return baseScale * 0.8;
                     } else {
                         return baseScale;
                     }
