@@ -357,7 +357,7 @@
         @media screen and (min-width: 1024px) and (max-height: 834px) and (orientation: landscape) {
             #head-container {
                 height: 55vh;
-                margin-bottom: -2.5rem;
+                margin-bottom: -4.5rem;
             }
         }
 
@@ -365,7 +365,7 @@
         @media (min-width: 768px) and (max-height: 600px) and (orientation: landscape) {
             #head-container {
                 height: 50vh;
-                margin-bottom: -2.5rem;
+                margin-bottom: -4rem;
             }
         }
 
@@ -489,8 +489,20 @@
                 const scene = new THREE.Scene();
                 const container = document.getElementById('head-container');
                 
-                // Use consistent field of view and near/far planes across all devices
-                const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+                // Use dynamic field of view based on device/orientation
+                function getCameraFOV() {
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+                    const isLandscape = viewportWidth > viewportHeight;
+                    
+                    if (isLandscape && viewportWidth >= 768 && viewportHeight <= 834) {
+                        return 55;
+                    } else {
+                        return 45;
+                    }
+                }
+                
+                const camera = new THREE.PerspectiveCamera(getCameraFOV(), container.clientWidth / container.clientHeight, 0.1, 1000);
                 camera.matrixAutoUpdate = true; // Explicitly ensure matrixAutoUpdate is on
                 scene.add(camera); // Add camera to the scene
                 
@@ -775,7 +787,7 @@
                         if (giggleIntervalId !== null) {
                             clearInterval(giggleIntervalId);
                             giggleIntervalId = null;
-                            head.position.y = 0; // Reset head position immediately
+                            adjustHeadPosition(); // Reset head position immediately
                         }
 
                         switchToState(STATE.GIGGLING);
@@ -789,7 +801,7 @@
                             if (currentState !== STATE.GIGGLING) {
                                 clearInterval(giggleIntervalId);
                                 giggleIntervalId = null;
-                                head.position.y = 0; // Reset head position
+                                adjustHeadPosition(); // Reset head position
                                 return; // Exit interval function
                             }
 
@@ -800,7 +812,7 @@
                             if (Date.now() - giggleStartTime > 2000) { // 2 seconds of giggling
                                 clearInterval(giggleIntervalId);
                                 giggleIntervalId = null;
-                                head.position.y = 0; // Reset head position
+                                adjustHeadPosition(); // Reset head position
 
                                 // Switch back only if still in GIGGLING state
                                 if (currentState === STATE.GIGGLING) {
@@ -978,7 +990,7 @@
                     if (currentState === STATE.GIGGLING && giggleIntervalId !== null) {
                         clearInterval(giggleIntervalId);
                         giggleIntervalId = null;
-                        head.position.y = 0; // Reset head position
+                        adjustHeadPosition(); // Reset head position
                     }
 
                     // Fresh start with each mood swing
@@ -1303,16 +1315,19 @@
                     // Z character 1 (smallest)
                     const z1 = createZCharacter(0.2);
                     z1.position.set(0.1, 1.6, 0);
+                    z1.userData.originalY = 1.6;
                     group.add(z1);
 
                     // Z character 2 (medium)
                     const z2 = createZCharacter(0.3);
                     z2.position.set(0.3, 1.8, 0);
+                    z2.userData.originalY = 1.8;
                     group.add(z2);
 
                     // Z character 3 (largest)
                     const z3 = createZCharacter(0.4);
                     z3.position.set(0.5, 2.0, 0);
+                    z3.userData.originalY = 2.0;
                     group.add(z3);
 
                     return group;
@@ -1374,14 +1389,20 @@
                     // Create different music note shapes
                     const note1 = createEighthNote(0.15);
                     note1.position.set(0.1, 1.5, 0);
+                    note1.userData.originalY = 1.5;
+                    note1.userData.originalX = 0.1;
                     group.add(note1);
 
                     const note2 = createQuarterNote(0.2);
                     note2.position.set(0.25, 1.7, 0);
+                    note2.userData.originalY = 1.7;
+                    note2.userData.originalX = 0.25;
                     group.add(note2);
 
                     const note3 = createEighthNote(0.25);
                     note3.position.set(0.4, 1.9, 0);
+                    note3.userData.originalY = 1.9;
+                    note3.userData.originalX = 0.4;
                     group.add(note3);
 
                     return group;
@@ -1571,7 +1592,7 @@
                         for (let i = 0, len = zzzGroup.children.length; i < len; i++) {
                             const z = zzzGroup.children[i];
                             z.position.y += 0.003;
-                            if (z.position.y > 2.5) z.position.y = 1.5;
+                            if (z.position.y > 2.5) z.position.y = z.userData.originalY;
                         }
                         // Reset head rotation
                         head.rotation.y = 0;
@@ -1583,8 +1604,8 @@
                             note.position.y += 0.004;
                             note.position.x += 0.001;
                             if (note.position.y > 2.5) {
-                                note.position.y = 1.5;
-                                note.position.x = 0.1 + Math.random() * 0.2;
+                                note.position.y = note.userData.originalY;
+                                note.position.x = note.userData.originalX;
                             }
                         }
                         // Add subtle head bob
