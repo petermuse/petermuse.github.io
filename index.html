@@ -689,8 +689,7 @@
                     const pixelRatio = window.devicePixelRatio || 1;
                     const isLandscape = viewportWidth > viewportHeight;
                     
-                    // Debug log for MacBook Pro detection
-                    console.log(`Viewport: ${viewportWidth}x${viewportHeight}, PixelRatio: ${pixelRatio}`);
+                
                     
                     // Base scale that looks good on standard displays
                     let baseScale = 1.2;
@@ -700,7 +699,6 @@
                         // 13-inch MacBook Pro M1 (and similar retina displays)
                         if ((viewportWidth >= 1280 && viewportWidth <= 1600) || 
                             (viewportWidth >= 1024 && viewportWidth <= 1440 && viewportHeight >= 600 && viewportHeight <= 900)) {
-                            console.log('MacBook Pro detected - applying smaller scale');
                             return 1.15; // Much bigger - 65% increase from original 0.7
                         }
                     }
