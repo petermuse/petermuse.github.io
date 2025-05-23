@@ -97,7 +97,6 @@
             margin: 0 0 5px 0;
             font-size: 14px;
             text-align: center;
-            display: none;
         }
 
         #state-toggle button {
@@ -108,20 +107,17 @@
             padding: 5px;
             transition: all 0.2s;
             font-family: monospace;
-            display: none;
         }
 
         #state-toggle button:hover {
             background: var(--head-color);
             color: black;
-            display: none;
         }
 
         #state-toggle button.active {
             background: var(--head-color);
             color: black;
             font-weight: bold;
-            display: none;
         }
 
         /* Head canvas container */
@@ -283,7 +279,7 @@
 
             #head-container {
                 height: 25vh;
-                margin-bottom: -1.5rem;
+                margin-bottom: -2.1rem; /* Closer to text */
             }
         }
 
@@ -297,7 +293,7 @@
 
             #head-container {
                 height: 25vh;
-                margin-bottom: -1rem;
+                margin-bottom: -1.8rem; /* Closer to text */
             }
         }
 
@@ -405,6 +401,34 @@
         import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 
         let headRaycastTarget; // Declare here for wider scope
+        
+        // Cache elements - performance matters
+        let stateToggleElement;
+        let cachedButtons = [];
+        let activeButton = null;
+
+        // Konami code detection
+        let konamiCode = [
+            'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+            'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+            'KeyB', 'KeyA'
+        ];
+        let konamiIndex = 0;
+
+        document.addEventListener('keydown', function(e) {
+            if (e.code === konamiCode[konamiIndex]) {
+                konamiIndex++;
+                if (konamiIndex === konamiCode.length) {
+                    // Konami code completed - toggle state controls
+                    if (!stateToggleElement) stateToggleElement = document.getElementById('state-toggle');
+                    const isHidden = window.getComputedStyle(stateToggleElement).display === 'none';
+                    stateToggleElement.style.display = isHidden ? 'flex' : 'none';
+                    konamiIndex = 0; // Reset for next time
+                }
+            } else {
+                konamiIndex = 0; // Reset if wrong key
+            }
+        });
 
         window.addEventListener('DOMContentLoaded', function() {
             // Initialize Three.js after a short delay to ensure everything's ready
@@ -438,11 +462,12 @@
                 // Fixed camera position for consistent view
                 camera.position.z = 5.5;
 
-                // Enhanced renderer settings for cross-device consistency
+                // WebGL renderer - making pixels dance
                 const renderer = new THREE.WebGLRenderer({ 
                     antialias: true,
                     alpha: true,
-                    preserveDrawingBuffer: false
+                    preserveDrawingBuffer: false,
+                    powerPreference: "high-performance"
                 });
                 
                 renderer.setSize(container.clientWidth, container.clientHeight);
@@ -451,6 +476,11 @@
                 // Set pixel ratio but cap it for very high-DPI devices to prevent overly thin lines
                 const pixelRatio = Math.min(window.devicePixelRatio, 2);
                 renderer.setPixelRatio(pixelRatio);
+                
+                // Reusable raycaster - efficiency is sexy
+                const raycaster = new THREE.Raycaster();
+                raycaster.params.Line = raycaster.params.Line || {};
+                raycaster.params.Line.threshold = 0.1;
                 
                 container.appendChild(renderer.domElement);
 
@@ -513,13 +543,30 @@
                     return;
                 }
 
-                // Create head with fixed scale independent of viewport size
+                // Create head with scale that matches text proportions
                 const head = new THREE.Group();
                 scene.add(head);
                 
-                // Set a fixed, consistent scale that works across all devices
-                const BASE_HEAD_SCALE = 1.3;
-                head.scale.set(BASE_HEAD_SCALE, BASE_HEAD_SCALE, BASE_HEAD_SCALE);
+                // Scale head slightly to maintain visual balance with text
+                function getHeadScale() {
+                    const viewportWidth = window.innerWidth;
+                    
+                    // Subtle scaling that maintains the visual balance you like
+                    if (viewportWidth <= 480) {
+                        // Text goes from 6.5rem to 3.5rem (46% smaller)
+                        // Head scales down only 20% to maintain better proportion
+                        return 1.3 * 0.8; // 1.04
+                    } else if (viewportWidth <= 768) {
+                        // Text goes from 6.5rem to 4.5rem (31% smaller)  
+                        // Head scales down only 10% to maintain better proportion
+                        return 1.3 * 0.9; // 1.17
+                    } else {
+                        // Desktop - original scale you like
+                        return 1.3;
+                    }
+                }
+                
+                head.scale.set(1, 1, 1); // Will be updated by updateHeadScaleBasedOnText
 
                 // Create an invisible sphere for raycasting
                 const sphereRadius = 1.2; // Adjust if necessary
@@ -529,10 +576,10 @@
                 headRaycastTarget.name = 'headRaycastTarget'; // Optional: for easier identification in logs
                 head.add(headRaycastTarget);
                 
-                // Function to maintain consistent head size regardless of container dimensions
+                // Keep head-to-text ratio looking good
                 function updateHeadScaleBasedOnText() {
-                    // Keep fixed scale across all devices
-                    head.scale.set(BASE_HEAD_SCALE, BASE_HEAD_SCALE, BASE_HEAD_SCALE);
+                    const scale = getHeadScale();
+                    head.scale.set(scale, scale, scale);
                 }
 
                 // Create face components
@@ -581,9 +628,19 @@
                 // After creating the eyebrows
                 const eyebrows = createEyebrows();
                 head.add(eyebrows);
+                
+                // Set initial head scale based on current text size
+                updateHeadScaleBasedOnText();
 
-                // Variable to hold the giggle interval ID
+                // Giggle timer control
                 let giggleIntervalId = null;
+                
+                // Track if camera needs matrix update
+                let cameraMatrixNeedsUpdate = false;
+                
+                // Cache container dimensions for resize optimization
+                let lastWidth = container.clientWidth;
+                let lastHeight = container.clientHeight;
 
                 // Event listeners for entire document (mouse tracking across whole page)
                 document.addEventListener('mousemove', function(event) {
@@ -619,12 +676,7 @@
                     mouseVector.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
                     mouseVector.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
-                    // Raycasting
-                    const raycaster = new THREE.Raycaster();
-                    raycaster.params.Line = raycaster.params.Line || {};
-                    raycaster.params.Line.threshold = 0.1;
-
-                    // Manual Ray Calculation
+                    // Manual Ray Calculation (reuse cached raycaster)
                     const rayOrigin = camera.position.clone(); // Ray originates from camera's current position
                     const rayDirection = new THREE.Vector3(mouseVector.x, mouseVector.y, 0.5); // Start with normalized device coords
 
@@ -708,22 +760,50 @@
                                     'LinkedIn container not found. Please reload the page.</div>';
                 }
 
+                // Cache buttons for performance
+                if (!stateToggleElement) stateToggleElement = document.getElementById('state-toggle');
+                cachedButtons = {
+                    normal: document.getElementById('normal-btn'),
+                    whistling: document.getElementById('whistling-btn'),
+                    sleeping: document.getElementById('sleeping-btn'),
+                    auto: document.getElementById('auto-btn')
+                };
+                
                 // Setup event listeners for state toggle buttons
-                document.getElementById('normal-btn').addEventListener('click', function() {
+                cachedButtons.normal.addEventListener('click', function() {
                     autoStateEnabled = false;
                     switchToState(STATE.NORMAL);
                     updateActiveButton('normal-btn');
                 });
 
+                cachedButtons.whistling.addEventListener('click', function() {
+                    autoStateEnabled = false;
+                    switchToState(STATE.WHISTLING);
+                    updateActiveButton('whistling-btn');
+                });
+
+                cachedButtons.sleeping.addEventListener('click', function() {
+                    autoStateEnabled = false;
+                    switchToState(STATE.SLEEPING);
+                    updateActiveButton('sleeping-btn');
+                });
+
+                cachedButtons.auto.addEventListener('click', function() {
+                    autoStateEnabled = true;
+                    updateStateBasedOnTime(); // Re-evaluate current state
+                    updateActiveButton('auto-btn');
+                });
+
                 // Function to update which button is active - UX matters, even for test controls
                 function updateActiveButton(activeButtonId) {
-                    // Remove active class from all buttons
-                    document.querySelectorAll('#state-toggle button').forEach(button => {
-                        button.classList.remove('active');
-                    });
+                    // Remove active class from current active button
+                    if (activeButton) {
+                        activeButton.classList.remove('active');
+                    }
 
                     // Add active class to the clicked button
-                    document.getElementById(activeButtonId).classList.add('active');
+                    activeButton = document.getElementById(activeButtonId);
+                    activeButton.classList.add('active');
                 }
 
                 window.addEventListener('resize', onWindowResize);
@@ -743,14 +823,21 @@
                 }
 
 
+                // Store interval IDs for cleanup
+                const timeCheckInterval = setInterval(updateStateBasedOnTime, 60000);
+                const inactivityCheckInterval = setInterval(checkInactivity, 1000);
+                
+                // Cleanup function to prevent memory leaks
+                window.addEventListener('beforeunload', function() {
+                    if (giggleIntervalId !== null) {
+                        clearInterval(giggleIntervalId);
+                    }
+                    clearInterval(timeCheckInterval);
+                    clearInterval(inactivityCheckInterval);
+                });
+
                 // Start animation loop
                 animate();
-
-                // Set up periodic time check (every minute)
-                setInterval(updateStateBasedOnTime, 60000);
-
-                // Set up inactivity check (every second)
-                setInterval(checkInactivity, 1000);
 
                 // Ensure initial size is set correctly after potential layout delays
                 onWindowResize();
@@ -787,7 +874,7 @@
                     }
                 }
 
-                // Function to check inactivity - are you still there?
+                // Checking if you've abandoned me yet
                 function checkInactivity() {
                     // Only check for inactivity during non-sleep time and if auto state is enabled
                     // Also, don't switch to WHISTLING if currently AWED or GIGGLING
@@ -796,7 +883,7 @@
                         const inactiveTime = now - lastActivity;
 
                         // If inactive for threshold and in NORMAL state, switch to WHISTLING
-                        // AKA: "Oh, you're not moving? Let me entertain myself then..."
+                        // "Fine, I'll entertain myself then..."
                         if (inactiveTime >= INACTIVITY_THRESHOLD && currentState === STATE.NORMAL) {
                             switchToState(STATE.WHISTLING);
                             // No need to update button here as it should already be 'auto'
@@ -815,10 +902,10 @@
                         head.position.y = 0; // Reset head position
                     }
 
-                    // Reset animation timers - every state change deserves a fresh start
+                    // Fresh start with each mood swing
                     lastStateChange = Date.now();
 
-                    // Update current state - identity crisis averted
+                    // Identity updated - existential crisis averted
                     currentState = newState;
 
                     // Default visibility settings (most states need these)
@@ -849,7 +936,7 @@
                         // Whistling state overrides
                         whistlingMouth.visible = true;
                         musicNotesGroup.visible = true;
-                        // Reset music note positions - tune up
+                        // Tune up for the next performance
                         musicNotesGroup.children.forEach((note, i) => {
                             note.position.y = 1.5 + (i * 0.2);
                             note.position.x = 0.1 + (i * 0.15);
@@ -875,7 +962,7 @@
                     eye.position.z = 1;
 
                     if (state === 'open') {
-                        // Diamond shape for eye outline - the shape of eternal vigilance
+                        // Diamond eyes - eternal digital vigilance
                         const outlinePoints = [
                             new THREE.Vector3(xOffset - 0.2, 0.3, 0),
                             new THREE.Vector3(xOffset, 0.4, 0),
@@ -892,7 +979,7 @@
                         outline.computeLineDistances();
                         eye.add(outline);
 
-                        // Small rectangle inside eye (pupil) - staring into your digital soul
+                        // Pupil - staring into your soul since 2024
                         const pupilGeometry = new THREE.PlaneGeometry(0.05, 0.05);
                         const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
                         const pupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
@@ -900,7 +987,7 @@
                         eye.add(pupil);
 
                     } else if (state === 'closed') {
-                        // Horizontal line for closed eye - zzzzz time
+                        // Closed eyes - digital beauty sleep
                         const points = [
                             new THREE.Vector3(xOffset - 0.2, 0.3, 0),
                             new THREE.Vector3(xOffset + 0.2, 0.3, 0)
@@ -1324,31 +1411,53 @@
 
                 // Window resize event handler 
                 function onWindowResize() {
-                    // Update window half dimensions
-                    windowHalfX = window.innerWidth / 2;
-                    windowHalfY = window.innerHeight / 2;
+                    const newWidth = container.clientWidth;
+                    const newHeight = container.clientHeight;
+                    
+                    // Only update if dimensions actually changed
+                    if (newWidth !== lastWidth || newHeight !== lastHeight) {
+                        // Update window half dimensions
+                        windowHalfX = window.innerWidth / 2;
+                        windowHalfY = window.innerHeight / 2;
 
-                    // Update camera and renderer
-                    camera.aspect = container.clientWidth / container.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(container.clientWidth, container.clientHeight);
-                    
-                    // Update lineMaterial resolution on resize
-                    if (lineMaterial && lineMaterial.isLineMaterial) {
-                        lineMaterial.resolution.set(container.clientWidth, container.clientHeight);
+                        // Update camera and renderer
+                        camera.aspect = newWidth / newHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(newWidth, newHeight);
+                        
+                        // Update lineMaterial resolution on resize
+                        if (lineMaterial && lineMaterial.isLineMaterial) {
+                            lineMaterial.resolution.set(newWidth, newHeight);
+                        }
+                        
+                        // Update head scale based on text size
+                        updateHeadScaleBasedOnText();
+                        
+                        // Cache new dimensions
+                        lastWidth = newWidth;
+                        lastHeight = newHeight;
+                        
+                        // Mark camera matrix for update
+                        cameraMatrixNeedsUpdate = true;
                     }
-                    
-                    // Update head scale based on text size
-                    updateHeadScaleBasedOnText();
                 }
 
                 // Call resize handler once to set initial size/scale
                 onWindowResize();
-
+                
                 // Animation loop - UPDATED
                 function animate() {
-                    camera.updateMatrixWorld(true); // Force update of camera's world matrix each frame
                     requestAnimationFrame(animate);
+                    
+                    // Only update camera matrix when needed
+                    if (cameraMatrixNeedsUpdate) {
+                        camera.updateMatrixWorld(true);
+                        cameraMatrixNeedsUpdate = false;
+                    }
+                    
+                    // Cache time calculation
+                    const currentTime = Date.now();
+                    const time = currentTime * 0.001;
 
                     // Shared mouse tracking logic (applied unless sleeping)
                     let currentTargetRotationY = 0;
@@ -1373,26 +1482,27 @@
 
                     // State-specific animations
                     if (currentState === STATE.SLEEPING) {
-                        // Animate ZZZs floating up
-                        zzzGroup.children.forEach(z => {
+                        // Animate ZZZs floating up (optimized loop)
+                        for (let i = 0, len = zzzGroup.children.length; i < len; i++) {
+                            const z = zzzGroup.children[i];
                             z.position.y += 0.003;
                             if (z.position.y > 2.5) z.position.y = 1.5;
-                        });
+                        }
                         // Reset head rotation
                         head.rotation.y = 0;
                         head.rotation.x = 0;
                     } else if (currentState === STATE.WHISTLING) {
-                        // Animate music notes
-                        musicNotesGroup.children.forEach(note => {
+                        // Animate music notes (optimized loop)
+                        for (let i = 0, len = musicNotesGroup.children.length; i < len; i++) {
+                            const note = musicNotesGroup.children[i];
                             note.position.y += 0.004;
                             note.position.x += 0.001;
                             if (note.position.y > 2.5) {
                                 note.position.y = 1.5;
                                 note.position.x = 0.1 + Math.random() * 0.2;
                             }
-                        });
+                        }
                         // Add subtle head bob
-                        const time = Date.now() * 0.001;
                         head.rotation.y += Math.sin(time * 0.5) * 0.02; // Adjusted the multiplier
                     } else if (currentState === STATE.GIGGLING) {
                         // Head position is handled by the giggle interval
@@ -1407,18 +1517,17 @@
 
                     // Subtle pulsing effect (apply unless sleeping)
                     if (currentState !== STATE.SLEEPING) {
-                        const time = Date.now() * 0.001;
                         lineMaterial.opacity = 0.7 + Math.sin(time) * 0.1;
                     } else {
                          lineMaterial.opacity = 0.8; // Keep opacity steady during sleep
                     }
 
-                    // Render the scene - make it all visible
+                    // Show time!
                     renderer.render(scene, camera);
                 }
             } catch (error) {
                 document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
-                                    'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Please reload the page and prepare to be dazzled.</div>';
+                                    'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Reload and prepare to be dazzled again.</div>';
             }
         }
     </script>
