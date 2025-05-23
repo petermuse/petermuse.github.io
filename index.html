@@ -569,19 +569,23 @@
                 // Scale head slightly to maintain visual balance with text
                 function getHeadScale() {
                     const viewportWidth = window.innerWidth;
+                    const pixelRatio = window.devicePixelRatio || 1;
                     
-                    // Subtle scaling that maintains the visual balance you like
+                    // Base scale that looks good on standard displays
+                    let baseScale = 1.3;
+                    
+                    // Adjust for high-DPI displays (like retina MacBook Pro)
+                    if (pixelRatio > 1.5) {
+                        baseScale = 1.5; // Increase head size on retina displays
+                    }
+                    
+                    // Apply responsive scaling
                     if (viewportWidth <= 480) {
-                        // Text goes from 6.5rem to 3.5rem (46% smaller)
-                        // Head scales down only 20% to maintain better proportion
-                        return 1.3 * 0.8; // 1.04
+                        return baseScale * 0.8;
                     } else if (viewportWidth <= 768) {
-                        // Text goes from 6.5rem to 4.5rem (31% smaller)  
-                        // Head scales down only 10% to maintain better proportion
-                        return 1.3 * 0.9; // 1.17
+                        return baseScale * 0.9;
                     } else {
-                        // Desktop - original scale you like
-                        return 1.3;
+                        return baseScale;
                     }
                 }
                 
