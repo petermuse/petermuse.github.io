@@ -162,8 +162,14 @@
             margin: 0;
             padding: 0;
             text-rendering: optimizeLegibility;
+            font-kerning: normal;
+            letter-spacing: 0.03em;
             -webkit-font-smoothing: antialiased;
             will-change: opacity;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         .first-name, .last-name {
@@ -172,7 +178,7 @@
         }
 
         .first-name {
-            margin-bottom: 0.2rem;
+            margin-bottom: 0.05em;
         }
 
         @keyframes letterGlow {
@@ -203,16 +209,16 @@
             contain: layout;
         }
 
-        .letter-p { margin-right: -0.03rem; color: var(--blue); animation-delay: 0.1s; --delay: 0.1s;}
-        .letter-e1 { margin-left: -0.07rem; margin-right: -0.06rem; color: var(--red); animation-delay: 0.3s; --delay: 0.3s;}
-        .letter-t { margin-left: -0.08rem; margin-right: -0.08rem; color: var(--green); animation-delay: 0.5s; --delay: 0.5s;}
-        .letter-e2 { margin-left: -0.08rem; margin-right: -0.04rem; color: var(--yellow); animation-delay: 0.7s; --delay: 0.7s;}
-        .letter-r { margin-left: -0.07rem; color: var(--purple); animation-delay: 0.9s; --delay: 0.9s;}
+        .letter-p { margin-right: -0.0485rem; color: var(--blue); animation-delay: 0.1s; --delay: 0.1s;}
+        .letter-e1 { margin-left: -0.0885rem; margin-right: -0.073rem; color: var(--red); animation-delay: 0.3s; --delay: 0.3s;}
+        .letter-t { margin-left: -0.094rem; margin-right: -0.1062rem; color: var(--green); animation-delay: 0.5s; --delay: 0.5s;}
+        .letter-e2 { margin-left: -0.1162rem; margin-right: -0.0288rem; color: var(--yellow); animation-delay: 0.7s; --delay: 0.7s;}
+        .letter-r { margin-left: -0.0558rem; color: var(--purple); animation-delay: 0.9s; --delay: 0.9s;}
 
-        .letter-m { margin-right: -0.04rem; color: var(--orange); animation-delay: 1.1s; --delay: 1.1s;}
-        .letter-u { margin-left: -0.06rem; margin-right: -0.05rem; color: var(--mint); animation-delay: 1.3s; --delay: 1.3s;}
-        .letter-s { margin-left: -0.07rem; margin-right: -0.06rem; color: var(--gold); animation-delay: 1.5s; --delay: 1.5s;}
-        .letter-e3 { margin-left: -0.07rem; color: var(--pink); animation-delay: 1.7s; --delay: 1.7s;}
+        .letter-m { margin-right: -0.0398rem; color: var(--orange); animation-delay: 1.1s; --delay: 1.1s;}
+        .letter-u { margin-left: -0.0558rem; margin-right: -0.075rem; color: var(--mint); animation-delay: 1.3s; --delay: 1.3s;}
+        .letter-s { margin-left: -0.095rem; margin-right: -0.0832rem; color: var(--gold); animation-delay: 1.5s; --delay: 1.5s;}
+        .letter-e3 { margin-left: -0.0932rem; color: var(--pink); animation-delay: 1.7s; --delay: 1.7s;}
 
 
         .name-container {
