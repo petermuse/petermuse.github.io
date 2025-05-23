@@ -694,7 +694,7 @@
                     
                     // MacBook Pro retina displays (1440x900 scaled, 2880x1800 actual)
                     if (pixelRatio >= 2 && viewportWidth >= 1200 && viewportWidth <= 1600 && viewportHeight <= 1000) {
-                        return 0.7; // Much smaller for MacBook Pro retina
+                        return 0.875; // 25% bigger: 0.7 * 1.25 = 0.875
                     }
                     
                     // Phone landscape mode - check this FIRST
