@@ -458,12 +458,12 @@
             try {
                 // Check if Three.js is available
                 if (typeof THREE === 'undefined') {
-                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
                                     'Three.js library not loaded. Please reload the page.</div>';
                     return;
                 }
                 if (typeof LineMaterial === 'undefined' || typeof LineGeometry === 'undefined' || typeof Line2 === 'undefined') {
-                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
                                     'Line JSM modules not loaded. Please reload the page.</div>';
                     return;
                 }
@@ -557,7 +557,7 @@
                 // Reference to the name element
                 const nameElement = document.querySelector('.name');
                 if (!nameElement) {
-                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
                                     'Name element not found. Please reload the page.</div>';
                     return;
                 }
@@ -779,7 +779,7 @@
                         }
                     });
                 } else {
-                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                    document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
                                     'LinkedIn container not found. Please reload the page.</div>';
                 }
 
@@ -1549,7 +1549,7 @@
                     renderer.render(scene, camera);
                 }
             } catch (error) {
-                document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;">' +
+                document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
                                     'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Reload and prepare to be dazzled again.</div>';
             }
         }
