@@ -749,6 +749,39 @@
                     }
                 });
 
+                // Add touch support for mobile devices
+                document.addEventListener('touchstart', function(event) {
+                    // Update last activity time on touch start
+                    lastActivity = Date.now();
+
+                    // If in whistling or awed state, switch back to normal (only if auto state is enabled and not sleeping)
+                    if (autoStateEnabled && (currentState === STATE.WHISTLING) && !isCaliforniaSleepTime()) {
+                        switchToState(STATE.NORMAL);
+                    }
+                }, { passive: false });
+
+                document.addEventListener('touchmove', function(event) {
+                    // Prevent default touch behavior to avoid scrolling issues
+                    event.preventDefault();
+                    
+                    // Update last activity time
+                    lastActivity = Date.now();
+
+                    // Only process single touch, ignore multi-touch
+                    if (event.touches.length === 1) {
+                        const touch = event.touches[0];
+                        
+                        // Calculate touch position relative to the window center (same coordinate system as mouse)
+                        mouseX = (touch.clientX - windowHalfX) / 50;
+                        mouseY = (touch.clientY - windowHalfY) / 50;
+
+                        // If in whistling or awed state, switch back to normal (only if auto state is enabled and not sleeping)
+                        if (autoStateEnabled && (currentState === STATE.WHISTLING) && !isCaliforniaSleepTime()) {
+                            switchToState(STATE.NORMAL);
+                        }
+                    }
+                }, { passive: false });
+
                 // Add keyboard activity tracking too
                 document.addEventListener('keydown', function() {
                     lastActivity = Date.now();
@@ -759,17 +792,17 @@
                     }
                 });
 
-                // Add click event listener for giggling
-                renderer.domElement.addEventListener('click', function(event) {
-                    // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
-                    const mouseVector = new THREE.Vector2();
-                    const rect = event.target.getBoundingClientRect();
-                    mouseVector.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-                    mouseVector.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+                // Shared function to handle head interaction (click/tap)
+                function handleHeadInteraction(clientX, clientY, targetElement) {
+                    // Calculate position in normalized device coordinates (-1 to +1) for both components
+                    const interactionVector = new THREE.Vector2();
+                    const rect = targetElement.getBoundingClientRect();
+                    interactionVector.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+                    interactionVector.y = -((clientY - rect.top) / rect.height) * 2 + 1;
 
                     // Manual Ray Calculation (reuse cached raycaster)
                     const rayOrigin = camera.position.clone(); // Ray originates from camera's current position
-                    const rayDirection = new THREE.Vector3(mouseVector.x, mouseVector.y, 0.5); // Start with normalized device coords
+                    const rayDirection = new THREE.Vector3(interactionVector.x, interactionVector.y, 0.5); // Start with normalized device coords
 
                     camera.updateMatrixWorld(true); // Force update of camera's world matrix just before unproject
                     rayDirection.unproject(camera); // Convert from NDC to world space via camera
@@ -779,7 +812,7 @@
                     raycaster.camera = camera; // Provide camera reference for LineSegments2 raycasting
                     const intersects = raycaster.intersectObject(headRaycastTarget, false); // Intersect with the sphere, not recursive
 
-                    // Only respond to clicks during waking hours and if not already giggling, sleeping, or awed, AND if the click intersects the head
+                    // Only respond to interactions during waking hours and if not already giggling, sleeping, or awed, AND if the interaction intersects the head
                     if (intersects.length > 0 && !isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
                         lastActivity = Date.now(); // Count this as activity
 
@@ -821,7 +854,24 @@
                             }
                         }, 16); // ~60fps
                     }
+                }
+
+                // Add click event listener for giggling
+                renderer.domElement.addEventListener('click', function(event) {
+                    handleHeadInteraction(event.clientX, event.clientY, event.target);
                 });
+
+                // Add touch event listener for mobile giggling
+                renderer.domElement.addEventListener('touchend', function(event) {
+                    // Prevent default to avoid triggering click events on mobile
+                    event.preventDefault();
+                    
+                    // Only process single touch, ignore multi-touch
+                    if (event.changedTouches.length === 1) {
+                        const touch = event.changedTouches[0];
+                        handleHeadInteraction(touch.clientX, touch.clientY, event.target);
+                    }
+                }, { passive: false });
 
                 // --- LinkedIn Hover Event Listeners ---
                 const linkedinContainer = document.querySelector('.linkedin-container');
