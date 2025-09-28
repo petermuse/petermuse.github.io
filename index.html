@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="description" content="The personal homepage of Peter Muse">
     <meta name="keywords" content="Peter Muse, creative technologist, long beach, digital media, ad operations, gallery media group, purewow, homepage, web developer, interactive design">
     <meta name="theme-color" content="#000000">
@@ -13,25 +13,40 @@
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.petermuse.com">
     <meta property="og:site_name" content="Peter Muse">
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="petermuse.com">
     <meta name="twitter:description" content="The personal homepage of Peter Muse.">
+    <meta name="twitter:image" content="https://www.petermuse.com/assets/og-image.png">
+    <meta property="og:image" content="https://www.petermuse.com/assets/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Peter Muse — personal homepage">
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="apple-touch-icon" href="data:,">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='35' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%231DACD6'%3Ep%3C/text%3E%3Ctext x='65' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%23FF8833'%3Em%3C/text%3E%3C/svg%3E">
     <title>peter muse's homepage</title>
     <link rel="canonical" href="https://www.petermuse.com" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&display=swap" as="style">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@500&display=swap">
+    <!-- Self-hosted EB Garamond -->
+    <link rel="preload" href="assets/fonts/ebgaramond/EBGaramond-500.ttf" as="font" type="font/ttf" crossorigin>
+
+    <!-- Import Map polyfill for wider browser support (vendored locally) -->
+    <script async src="assets/vendor/es-module-shims@1/es-module-shims.min.js" crossorigin="anonymous"></script>
+
+    <!-- Vendored local modules: remove external CDN dependency -->
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/build/three.module.js" as="script" crossorigin>
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/examples/jsm/lines/Line2.js" as="script" crossorigin>
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/examples/jsm/lines/LineMaterial.js" as="script" crossorigin>
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/examples/jsm/lines/LineGeometry.js" as="script" crossorigin>
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/examples/jsm/lines/LineSegments2.js" as="script" crossorigin>
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/examples/jsm/lines/LineSegmentsGeometry.js" as="script" crossorigin>
+    <link rel="modulepreload" href="assets/vendor/three@0.128.0/examples/jsm/lines/WireframeGeometry2.js" as="script" crossorigin>
 
     <script type="importmap">
     {
       "imports": {
-        "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-        "three/examples/jsm/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+        "three": "assets/vendor/three@0.128.0/build/three.module.js",
+        "three/examples/jsm/": "assets/vendor/three@0.128.0/examples/jsm/"
       }
     }
     </script>
@@ -41,6 +56,9 @@
       "@type": "Person",
       "name": "Peter Muse",
       "url": "https://www.petermuse.com",
+      "description": "The personal homepage of Peter Muse",
+      "image": "https://www.petermuse.com/assets/og-image.png",
+      "jobTitle": "Creative Technologist",
       "sameAs": ["https://www.linkedin.com/in/peter-muse/"]
     }
     </script>
@@ -53,6 +71,21 @@
     </script>
 
     <style>
+        /* Self-hosted EB Garamond (400, 500) */
+        @font-face {
+            font-family: 'EB Garamond';
+            font-style: normal;
+            font-weight: 400;
+            font-display: swap;
+            src: url('assets/fonts/ebgaramond/EBGaramond-400.ttf') format('truetype');
+        }
+        @font-face {
+            font-family: 'EB Garamond';
+            font-style: normal;
+            font-weight: 500;
+            font-display: swap;
+            src: url('assets/fonts/ebgaramond/EBGaramond-500.ttf') format('truetype');
+        }
         *, *::before, *::after {
             box-sizing: border-box;
         }
@@ -440,15 +473,11 @@
         <button id="auto-btn">Auto</button>
     </div>
 
-    <!-- SEO-friendly hidden content for search engines -->
-    <div style="position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden;">
-        <h1>petermuse.com</h1>
-        <p>My home on the world wide web.</p>
-    </div>
+    
 
     <div class="main-content">
         <header class="name-container" role="banner">
-            <h2 class="name" aria-label="Peter Muse">
+            <h1 class="name" aria-label="Peter Muse">
                 <div class="first-name">
                     <span class="letter letter-p">P</span>
                     <span class="letter letter-e1">e</span>
@@ -462,7 +491,7 @@
                     <span class="letter letter-s">s</span>
                     <span class="letter letter-e3">e</span>
                 </div>
-            </h2>
+            </h1>
         </header>
 
         <footer class="linkedin-container" role="contentinfo">
