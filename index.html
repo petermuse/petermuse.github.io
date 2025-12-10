@@ -3,29 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="The personal homepage of Peter Muse">
-    <meta name="keywords" content="Peter Muse, creative technologist, long beach, digital media, ad operations, gallery media group, purewow, homepage, web developer, interactive design">
+    <meta name="description" content="Peter Muse's Personal Homepage'">
+    <meta name="keywords" content="Peter Muse, creative technologist, long beach, digital media, ad operations, gallery media group, purewow, nickelodeon, viacom, thrillist, kidoodle.tv, supplyframe, homepage, web developer, interactive design">
     <meta name="theme-color" content="#000000">
     <meta name="robots" content="index, follow">
     <meta name="author" content="Peter Muse">
-    <meta property="og:title" content="petermuse.com">
-    <meta property="og:description" content="The personal homepage of Peter Muse">
+    <meta property="og:title" content="Peter Muse's Personal Homepage">
+    <meta property="og:description" content="Ad Operations dude in Long Beach, CA.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.petermuse.com">
     <meta property="og:site_name" content="Peter Muse">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="petermuse.com">
-    <meta name="twitter:description" content="The personal homepage of Peter Muse.">
+    <meta name="twitter:title" content="Peter Muse's Personal Homepage">
+    <meta name="twitter:description" content="Peter Muse's Personal Homepage">
     <meta name="twitter:image" content="https://www.petermuse.com/assets/og-image.png">
     <meta property="og:image" content="https://www.petermuse.com/assets/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="Peter Muse — personal homepage">
+    <meta property="og:image:alt" content="Peter Muse's Personal Homepage">
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
     <link rel="apple-touch-icon" href="data:,">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='35' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%231DACD6'%3Ep%3C/text%3E%3Ctext x='65' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%23FF8833'%3Em%3C/text%3E%3C/svg%3E">
-    <title>peter muse's homepage</title>
+    <title>Peter Muse's Personal Homepage</title>
     <link rel="canonical" href="https://www.petermuse.com" />
     <!-- Self-hosted EB Garamond -->
     <link rel="preload" href="assets/fonts/ebgaramond/EBGaramond-500.ttf" as="font" type="font/ttf" crossorigin>
@@ -45,11 +45,28 @@
       "@context": "https://schema.org",
       "@type": "Person",
       "name": "Peter Muse",
+      "givenName": "Peter",
+      "familyName": "Muse",
       "url": "https://www.petermuse.com",
-      "description": "The personal homepage of Peter Muse",
+      "description": "Peter Muse's Personal Homepage",
       "image": "https://www.petermuse.com/assets/og-image.png",
-      "jobTitle": "Creative Technologist",
-      "sameAs": ["https://www.linkedin.com/in/peter-muse/"]
+      "jobTitle": "Ad Operations",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Long Beach",
+        "addressRegion": "CA",
+        "addressCountry": "US"
+      },
+      "knowsAbout": [
+        "Web Development",
+        "Digital Media",
+        "Interactive Design",
+        "Ad Operations",
+        "Creative Technology"
+      ],
+      "sameAs": [
+        "https://www.linkedin.com/in/peter-muse/"
+      ]
     }
     </script>
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-B3KL6DBEM8"></script>
@@ -468,6 +485,13 @@
                 headY: -0.15,      // Slight shift down to center head in container
                 animationBaseY: -0.15
             },
+            // Retina display adjustments (devicePixelRatio >= 2)
+            // Compensates for visual differences on HiDPI screens
+            retinaAdjustments: {
+                headYOffset: -0.08,    // Lower head slightly (appears higher on retina)
+                scaleMultiplier: 1.06, // Slightly larger (appears smaller on retina)
+                lineWidthMultiplier: 1.3  // Thicker lines (appear thinner on retina)
+            },
             // Phone landscape overrides (short + wide screens)
             phoneLandscape: {
                 cameraFOV: 40,
@@ -519,6 +543,7 @@
             get pixelRatio() { return this._cache.pixelRatio; }
             get isLandscape() { return this._cache.isLandscape; }
             get isPhoneLandscape() { return this._cache.isPhoneLandscape; }
+            get isRetina() { return this._cache.pixelRatio >= 2; }
             get windowHalfX() { return this._cache.windowHalfX; }
             get windowHalfY() { return this._cache.windowHalfY; }
 
@@ -526,11 +551,25 @@
                 return Math.min(this._cache.pixelRatio, this.config.renderer.MAX_PIXEL_RATIO);
             }
 
+            // Retina adjustment helpers
+            get retinaHeadYOffset() {
+                return this.isRetina ? this.config.retinaAdjustments.headYOffset : 0;
+            }
+
+            get retinaScaleMultiplier() {
+                return this.isRetina ? this.config.retinaAdjustments.scaleMultiplier : 1;
+            }
+
+            get retinaLineWidthMultiplier() {
+                return this.isRetina ? this.config.retinaAdjustments.lineWidthMultiplier : 1;
+            }
+
             // Settings getters - use phone landscape overrides when applicable
             get headPositionY() {
-                return this._cache.isPhoneLandscape
+                const baseY = this._cache.isPhoneLandscape
                     ? this.config.phoneLandscape.headY
                     : this.config.defaults.headY;
+                return baseY + this.retinaHeadYOffset;
             }
 
             get cameraFOV() {
@@ -675,9 +714,13 @@
 
                 // Standardized line material function with device-independent settings
                 function createLineMaterial(rendererInstance) {
+                    // Apply retina adjustment for line width (lines appear thinner on retina)
+                    const baseLineWidth = 1.5;
+                    const adjustedLineWidth = baseLineWidth * viewport.retinaLineWidthMultiplier;
+
                     const material = new LineMaterial({ // Use imported LineMaterial
                         color: 0x00ff00,
-                        linewidth: 1.5, // Screen-space pixels
+                        linewidth: adjustedLineWidth, // Screen-space pixels, adjusted for retina
                         transparent: true,
                         opacity: 0.8
                         // Note: dashed, dashScale, dashSize, gapSize properties are available for dashed lines
@@ -748,7 +791,10 @@
                     const fontSize = parseFloat(computedStyle.fontSize);
 
                     // Scale proportionally to maintain consistent head-to-text ratio
-                    const scale = REFERENCE_SCALE * (fontSize / REFERENCE_FONT_SIZE);
+                    let scale = REFERENCE_SCALE * (fontSize / REFERENCE_FONT_SIZE);
+
+                    // Apply retina adjustment (head appears smaller on retina)
+                    scale *= viewport.retinaScaleMultiplier;
 
                     // Clamp to reasonable range
                     return Math.max(0.5, Math.min(1.8, scale));
