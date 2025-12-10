@@ -105,7 +105,7 @@
 
             /* Layout */
             --head-container-height: 25vh;
-            --head-container-margin: -0.5rem;
+            --head-container-margin: 0.5rem;
         }
         body {
             margin: 0;
@@ -458,23 +458,23 @@
             },
             renderer: {
                 MAX_PIXEL_RATIO: 2,
-                CANVAS_TOP_EXTENSION: 0.4  // Extend canvas 40% taller for animation overflow
+                CANVAS_TOP_EXTENSION: 0.25  // Extend canvas 25% taller for animation overflow
             },
             // Default camera/position settings (used for most breakpoints)
             defaults: {
                 cameraFOV: 45,
                 cameraZ: 5.5,
                 cameraY: 0,
-                headY: -0.35,      // Shift head down to center it (geometry center is ~0.29 above origin)
-                animationBaseY: -0.35
+                headY: -0.15,      // Slight shift down to center head in container
+                animationBaseY: -0.15
             },
             // Phone landscape overrides (short + wide screens)
             phoneLandscape: {
                 cameraFOV: 40,
                 cameraZ: 6.0,
                 cameraY: 0.2,
-                headY: 0.15,       // Shifted down from 0.5 (same -0.35 offset)
-                animationBaseY: 0.15
+                headY: 0.35,       // Adjusted for phone landscape
+                animationBaseY: 0.35
             }
         };
 
@@ -639,7 +639,7 @@
                 function adjustCameraPosition() {
                     camera.position.z = viewport.cameraPositionZ;
                     // Shift camera up so head appears in lower portion of extended canvas
-                    const cameraYOffset = canvasExtension * 0.8;  // Offset based on extension
+                    const cameraYOffset = canvasExtension * 0.5;  // Offset based on extension
                     camera.position.y = viewport.cameraPositionY + cameraYOffset;
                     camera.fov = viewport.cameraFOV;
                     camera.updateProjectionMatrix();
@@ -737,10 +737,10 @@
                 scene.add(head);
 
                 // Scale head based on actual text size for consistent ratio
-                // Reference: 1.5 scale at 83.2px font size (5.2rem at 16px base)
-                // This is 25% larger than the original 1.2 scale
+                // Reference: 1.35 scale at 83.2px font size (5.2rem at 16px base)
+                // This is ~12% larger than the original 1.2 scale
                 const REFERENCE_FONT_SIZE = 83.2;
-                const REFERENCE_SCALE = 1.5;
+                const REFERENCE_SCALE = 1.35;
 
                 function getHeadScale() {
                     // Get actual computed font size of the name element
@@ -751,7 +751,7 @@
                     const scale = REFERENCE_SCALE * (fontSize / REFERENCE_FONT_SIZE);
 
                     // Clamp to reasonable range
-                    return Math.max(0.5, Math.min(2.0, scale));
+                    return Math.max(0.5, Math.min(1.8, scale));
                 }
 
                 head.scale.set(1, 1, 1); // Will be updated by updateHeadScaleBasedOnText
