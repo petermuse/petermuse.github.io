@@ -87,6 +87,7 @@
         }
         
         :root {
+            /* Colors */
             --blue: #1DACD6;
             --red: #FF5349;
             --green: #76FF7A;
@@ -98,6 +99,13 @@
             --pink: #FF9999;
             --head-color: #00ff00;
             --linkedin-glow-gradient: linear-gradient(90deg, var(--blue), var(--red), var(--green), var(--yellow), var(--purple), var(--orange), var(--mint), var(--gold), var(--pink), var(--blue));
+
+            /* Responsive typography (mobile-first) */
+            --font-size-name: 3.5rem;
+
+            /* Layout */
+            --head-container-height: 25vh;
+            --head-container-margin: -0.5rem;
         }
         body {
             margin: 0;
@@ -161,19 +169,21 @@
             font-weight: bold;
         }
 
-        /* Head canvas container */
+        /* Head canvas container - extends to top for animation overflow */
         #head-container {
             width: 100%;
-            height: 25vh; /* Adjusted for better proportions */
+            height: var(--head-container-height);
             position: relative;
-            margin-bottom: -2rem;
+            margin-bottom: var(--head-container-margin);
             overflow: visible;
         }
 
-        canvas {
+        #head-container canvas {
             display: block;
-            width: 100%;
-            height: 100%;
+            position: absolute;
+            bottom: 0;                    /* Anchor to bottom so extra space is above */
+            left: 0;
+            /* Width/height set by JavaScript to extend upward */
         }
 
         .main-content {
@@ -185,7 +195,7 @@
         }
 
         .name {
-            font-size: 5.2rem;
+            font-size: var(--font-size-name);
             font-weight: 500;
             line-height: 0.9;
             margin: 0;
@@ -320,121 +330,52 @@
             100% { filter: brightness(1) blur(0px); }
         }
 
-        @media (max-width: 768px) {
-            .name {
-                font-size: 4.5rem;
-            }
+        /* ===========================================
+           RESPONSIVE BREAKPOINTS (Mobile-First)
+           Base: 0-479px (mobile portrait)
+           sm: 480px+ (large phones)
+           md: 768px+ (tablets)
+           lg: 1200px+ (desktops)
+           =========================================== */
 
-            #head-container {
-                height: 25vh;
-                margin-bottom: -2.1rem; /* Closer to text */
+        /* sm: Large phones (480px+) */
+        @media (min-width: 480px) {
+            :root {
+                --font-size-name: 4rem;
+                --head-container-height: 27vh;
             }
         }
 
-        @media (max-width: 480px) {
-            .name {
-                font-size: 3.5rem;
-            }
-            .linkedin-container {
-                margin-top: 2rem;
-            }
-
-            #head-container {
-                height: 25vh;
-                margin-bottom: -1.8rem; /* Closer to text */
+        /* md: Tablets (768px+) */
+        @media (min-width: 768px) {
+            :root {
+                --font-size-name: 4.5rem;
+                --head-container-height: 29vh;
             }
         }
 
-        /* Medium desktop screens like MacBook Pro 1440x900 */
-        @media (min-width: 1200px) and (max-width: 1600px) and (max-height: 1000px) {
-            .name {
-                font-size: 4.8rem;
-            }
-            
-            #head-container {
-                height: 22vh;
-                margin-bottom: -1.5rem;
-            }
-            
-            .linkedin-container {
-                margin-top: 2.5rem;
+        /* lg: Desktops (1200px+) */
+        @media (min-width: 1200px) {
+            :root {
+                --font-size-name: 5.2rem;
+                --head-container-height: 32vh;
             }
         }
 
-        @media (max-height: 600px) {
-            .name {
-                font-size: 4rem;
-            }
-            .linkedin-container {
-                margin-top: 1.5rem;
-            }
-
-            #head-container {
-                height: 25vh;
-            }
-        }
-
-        /* Unified phone landscape layout */
+        /* Special case: Phone landscape (short + wide screens) */
         @media (max-height: 500px) and (orientation: landscape) {
-            body {
-                flex-direction: column;
-                justify-content: center;
-                padding: 0;
+            :root {
+                --font-size-name: 2.8rem;
+                --head-container-height: 30vh;
+                --head-container-margin: 0.5rem;
             }
-            
-            #head-container {
-                width: 100%;
-                height: 30vh;
-                margin-bottom: 0.5rem;
-            }
-            
-            .main-content {
-                width: 100%;
-            }
-            
-            .name {
-                font-size: 2.8rem;
-            }
-            
+
             .linkedin-container {
                 margin-top: 1rem;
-                margin-left: 0;
             }
         }
 
-        /* Unified tablet landscape rules */
-        @media screen and (min-width: 768px) and (orientation: landscape) {
-            #head-container {
-                height: 30vh;
-                margin-bottom: -1.5rem;
-            }
-        }
-
-        /* Portrait tablet rules */
-        @media (min-width: 768px) and (orientation: portrait) {
-            #head-container {
-                height: 35vh;
-                margin-bottom: -2rem;
-            }
-        }
-
-
-        /* Additional landscape orientation safety for tablets */
-        @media (min-width: 768px) and (max-width: 1023px) and (max-height: 600px) and (orientation: landscape) {
-            #head-container {
-                height: 50vh;
-                margin-bottom: -4rem;
-            }
-        }
-        
-        /* Tablet landscape with taller viewports */
-        @media (min-width: 768px) and (max-width: 1200px) and (min-height: 600px) and (orientation: landscape) {
-            #head-container {
-                height: 40vh;
-                margin-bottom: -2.5rem;
-            }
-        }
-
+        /* Accessibility: Reduced motion */
         @media (prefers-reduced-motion: reduce) {
             .letter {
                 animation: none;
@@ -503,6 +444,123 @@
         import { LineMaterial } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/LineMaterial.js';
         import { LineGeometry } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/LineGeometry.js';
 
+        // ============================================
+        // RESPONSIVE CONFIGURATION - Single Source of Truth
+        // Matches CSS breakpoints: base (0), sm (480px), md (768px), lg (1200px)
+        // ============================================
+        const RESPONSIVE_CONFIG = {
+            // Breakpoints matching CSS mobile-first approach
+            breakpoints: {
+                SM: 480,    // Large phones
+                MD: 768,    // Tablets
+                LG: 1200,   // Desktops
+                PHONE_LANDSCAPE_MAX_HEIGHT: 500  // Special case for phone landscape
+            },
+            renderer: {
+                MAX_PIXEL_RATIO: 2,
+                CANVAS_TOP_EXTENSION: 0.4  // Extend canvas 40% taller for animation overflow
+            },
+            // Default camera/position settings (used for most breakpoints)
+            defaults: {
+                cameraFOV: 45,
+                cameraZ: 5.5,
+                cameraY: 0,
+                headY: -0.35,      // Shift head down to center it (geometry center is ~0.29 above origin)
+                animationBaseY: -0.35
+            },
+            // Phone landscape overrides (short + wide screens)
+            phoneLandscape: {
+                cameraFOV: 40,
+                cameraZ: 6.0,
+                cameraY: 0.2,
+                headY: 0.15,       // Shifted down from 0.5 (same -0.35 offset)
+                animationBaseY: 0.15
+            }
+        };
+
+        // ============================================
+        // VIEWPORT MANAGER - Centralized Device Detection
+        // ============================================
+        class ViewportManager {
+            constructor(config) {
+                this.config = config;
+                this._cache = {
+                    width: 0,
+                    height: 0,
+                    pixelRatio: 1,
+                    isLandscape: false,
+                    isPhoneLandscape: false,
+                    windowHalfX: 0,
+                    windowHalfY: 0
+                };
+                this._updateCache();
+            }
+
+            _updateCache() {
+                this._cache.width = window.innerWidth;
+                this._cache.height = window.innerHeight;
+                this._cache.pixelRatio = window.devicePixelRatio || 1;
+                this._cache.isLandscape = this._cache.width > this._cache.height;
+                this._cache.windowHalfX = this._cache.width / 2;
+                this._cache.windowHalfY = this._cache.height / 2;
+
+                // Phone landscape: short screen in landscape orientation
+                // Matches CSS: @media (max-height: 500px) and (orientation: landscape)
+                this._cache.isPhoneLandscape = this._cache.isLandscape &&
+                    this._cache.height <= this.config.breakpoints.PHONE_LANDSCAPE_MAX_HEIGHT;
+            }
+
+            update() {
+                this._updateCache();
+            }
+
+            get width() { return this._cache.width; }
+            get height() { return this._cache.height; }
+            get pixelRatio() { return this._cache.pixelRatio; }
+            get isLandscape() { return this._cache.isLandscape; }
+            get isPhoneLandscape() { return this._cache.isPhoneLandscape; }
+            get windowHalfX() { return this._cache.windowHalfX; }
+            get windowHalfY() { return this._cache.windowHalfY; }
+
+            get cappedPixelRatio() {
+                return Math.min(this._cache.pixelRatio, this.config.renderer.MAX_PIXEL_RATIO);
+            }
+
+            // Settings getters - use phone landscape overrides when applicable
+            get headPositionY() {
+                return this._cache.isPhoneLandscape
+                    ? this.config.phoneLandscape.headY
+                    : this.config.defaults.headY;
+            }
+
+            get cameraFOV() {
+                return this._cache.isPhoneLandscape
+                    ? this.config.phoneLandscape.cameraFOV
+                    : this.config.defaults.cameraFOV;
+            }
+
+            get cameraPositionZ() {
+                return this._cache.isPhoneLandscape
+                    ? this.config.phoneLandscape.cameraZ
+                    : this.config.defaults.cameraZ;
+            }
+
+            get cameraPositionY() {
+                return this._cache.isPhoneLandscape
+                    ? this.config.phoneLandscape.cameraY
+                    : this.config.defaults.cameraY;
+            }
+
+            get animationBaseY() {
+                return this._cache.isPhoneLandscape
+                    ? this.config.phoneLandscape.animationBaseY
+                    : this.config.defaults.animationBaseY;
+            }
+        }
+
+        // Initialize viewport manager (global for use across functions)
+        const viewport = new ViewportManager(RESPONSIVE_CONFIG);
+
         let headRaycastTarget; // Declare here for wider scope
         
         // Cache elements - performance matters
@@ -552,26 +610,24 @@
                     return;
                 }
 
+                // Refresh viewport cache now that DOM is fully ready
+                viewport.update();
 
                 // Scene, camera, renderer setup
                 const scene = new THREE.Scene();
                 const container = document.getElementById('head-container');
-                
+
+                // Canvas extension for animation overflow (ZZZs, music notes float upward)
+                const canvasExtension = RESPONSIVE_CONFIG.renderer.CANVAS_TOP_EXTENSION;
+
                 // Use dynamic field of view based on device/orientation
                 function getCameraFOV() {
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const isLandscape = viewportWidth > viewportHeight;
-                    
-                    // Tablet FOV (768px - 1024px)
-                    if (viewportWidth >= 768 && viewportWidth <= 1024) {
-                        return 50; // Consistent FOV for tablets
-                    } else {
-                        return 45; // Default for phones and desktop
-                    }
+                    return viewport.cameraFOV;
                 }
-                
-                const camera = new THREE.PerspectiveCamera(getCameraFOV(), container.clientWidth / container.clientHeight, 0.1, 1000);
+
+                // Calculate extended canvas height for proper aspect ratio
+                const initialExtendedHeight = container.clientHeight * (1 + canvasExtension);
+                const camera = new THREE.PerspectiveCamera(getCameraFOV(), container.clientWidth / initialExtendedHeight, 0.1, 1000);
                 camera.matrixAutoUpdate = true; // Explicitly ensure matrixAutoUpdate is on
                 scene.add(camera); // Add camera to the scene
                 
@@ -579,52 +635,19 @@
                 camera.position.z = 5.5;
                 
                 // Function to adjust camera for different orientations
+                // Camera Y is offset to account for extended canvas (head renders in lower portion)
                 function adjustCameraPosition() {
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const isLandscape = viewportWidth > viewportHeight;
-                    
-                    // Phone landscape - check this FIRST
-                    if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
-                        camera.position.z = 6.0;
-                        camera.position.y = 0.2;
-                        camera.fov = 40;
-                        camera.updateProjectionMatrix();
-                    }
-                    // Tablet camera positioning (768px - 1200px)
-                    else if (viewportWidth >= 768 && viewportWidth <= 1200) {
-                        // Consistent settings for tablets only
-                        camera.position.z = isLandscape ? 7.0 : 6.0;
-                        camera.position.y = 0;
-                        camera.fov = 50;
-                        camera.updateProjectionMatrix();
-                    } else {
-                        // Default for phones and desktop
-                        camera.position.z = 5.5;
-                        camera.position.y = 0;
-                        camera.fov = 45;
-                        camera.updateProjectionMatrix();
-                    }
+                    camera.position.z = viewport.cameraPositionZ;
+                    // Shift camera up so head appears in lower portion of extended canvas
+                    const cameraYOffset = canvasExtension * 0.8;  // Offset based on extension
+                    camera.position.y = viewport.cameraPositionY + cameraYOffset;
+                    camera.fov = viewport.cameraFOV;
+                    camera.updateProjectionMatrix();
                 }
                 
                 // Function to adjust head position for different orientations
                 function adjustHeadPosition() {
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const isLandscape = viewportWidth > viewportHeight;
-                    
-                    // Phone landscape mode - check this FIRST
-                    if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
-                        head.position.y = 0.5;
-                    }
-                    // Tablet head positioning (768px - 1200px)
-                    else if (viewportWidth >= 768 && viewportWidth <= 1200) {
-                        // Move head down slightly for tablets
-                        head.position.y = -0.3;
-                    } else {
-                        // Default for phones and desktop
-                        head.position.y = 0;
-                    }
+                    head.position.y = viewport.headPositionY;
                 }
 
                 // WebGL renderer - making pixels dance
@@ -635,12 +658,13 @@
                     powerPreference: "high-performance"
                 });
                 
-                renderer.setSize(container.clientWidth, container.clientHeight);
+                // Set canvas size with extension for animation overflow
+                const extendedHeight = Math.round(container.clientHeight * (1 + canvasExtension));
+                renderer.setSize(container.clientWidth, extendedHeight);
                 renderer.setClearColor(0x000000, 1);
                 
                 // Set pixel ratio but cap it for very high-DPI devices to prevent overly thin lines
-                const pixelRatio = Math.min(window.devicePixelRatio, 2);
-                renderer.setPixelRatio(pixelRatio);
+                renderer.setPixelRatio(viewport.cappedPixelRatio);
                 
                 // Reusable raycaster - efficiency is sexy
                 const raycaster = new THREE.Raycaster();
@@ -697,8 +721,8 @@
                 let mouseY = 0;
                 let targetRotationX = 0;
                 let targetRotationY = 0;
-                let windowHalfX = window.innerWidth / 2;
-                let windowHalfY = window.innerHeight / 2;
+                let windowHalfX = viewport.windowHalfX;
+                let windowHalfY = viewport.windowHalfY;
 
                 // Reference to the name element
                 const nameElement = document.querySelector('.name');
@@ -711,57 +735,25 @@
                 // Create head with scale that matches text proportions
                 const head = new THREE.Group();
                 scene.add(head);
-                
-                // Scale head slightly to maintain visual balance with text
+
+                // Scale head based on actual text size for consistent ratio
+                // Reference: 1.5 scale at 83.2px font size (5.2rem at 16px base)
+                // This is 25% larger than the original 1.2 scale
+                const REFERENCE_FONT_SIZE = 83.2;
+                const REFERENCE_SCALE = 1.5;
+
                 function getHeadScale() {
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const pixelRatio = window.devicePixelRatio || 1;
-                    const isLandscape = viewportWidth > viewportHeight;
-                    
-                
-                    
-                    // Base scale that looks good on standard displays
-                    let baseScale = 1.2;
-                    
-                    // MacBook Pro retina displays - broader detection
-                    if (pixelRatio >= 2) {
-                        // 13-inch MacBook Pro M1 (and similar retina displays)
-                        if ((viewportWidth >= 1280 && viewportWidth <= 1600) || 
-                            (viewportWidth >= 1024 && viewportWidth <= 1440 && viewportHeight >= 600 && viewportHeight <= 900)) {
-                            return 1.15; // Much bigger - 65% increase from original 0.7
-                        }
-                    }
-                    
-                    // Phone landscape mode - check this FIRST
-                    if (isLandscape && viewportWidth <= 900 && viewportHeight <= 500) {
-                        return 1.0; // Consistent size for phone landscape
-                    }
-                    // Tablet logic (768px - 1200px) based on orientation
-                    else if (viewportWidth >= 768 && viewportWidth <= 1200) {
-                        if (viewportHeight > viewportWidth) {
-                            // Portrait tablet
-                            return 1.4;
-                        } else {
-                            // Landscape tablet
-                            return 1.3;
-                        }
-                    }
-                    
-                    // Mobile devices - consistent sizing
-                    if (viewportWidth <= 480) {
-                        return 1.1; // Larger for mobile
-                    } else if (viewportWidth <= 768) {
-                        return 1.2; // Consistent mobile/small tablet
-                    } else {
-                        // Desktop - check for retina
-                        if (pixelRatio > 1.5) {
-                            return 0.9; // Smaller on retina desktop
-                        }
-                        return baseScale;
-                    }
+                    // Get actual computed font size of the name element
+                    const computedStyle = window.getComputedStyle(nameElement);
+                    const fontSize = parseFloat(computedStyle.fontSize);
+
+                    // Scale proportionally to maintain consistent head-to-text ratio
+                    const scale = REFERENCE_SCALE * (fontSize / REFERENCE_FONT_SIZE);
+
+                    // Clamp to reasonable range
+                    return Math.max(0.5, Math.min(2.0, scale));
                 }
-                
+
                 head.scale.set(1, 1, 1); // Will be updated by updateHeadScaleBasedOnText
 
                 // Create an invisible sphere for raycasting
@@ -948,15 +940,9 @@
                                 return; // Exit interval function
                             }
 
-                            // Small random head movements for giggling effect - adjusted for mobile landscape
-                            const viewportWidth = window.innerWidth;
-                            const viewportHeight = window.innerHeight;
-                            const isLandscape = viewportWidth > viewportHeight;
-                            const isPhoneLandscape = isLandscape && viewportWidth <= 900 && viewportHeight <= 500;
-                            
-                            const baseY = isPhoneLandscape ? 0.5 : (viewportWidth >= 768 && viewportWidth <= 1200) ? 0 : 0;
+                            // Small random head movements for giggling effect
                             const giggleOffset = Math.sin((Date.now() - giggleStartTime) * 0.02) * 0.03;
-                            head.position.y = baseY + giggleOffset;
+                            head.position.y = viewport.animationBaseY + giggleOffset;
 
                             // Check if we should stop giggling based on time
                             if (Date.now() - giggleStartTime > 2000) { // 2 seconds of giggling
@@ -1678,40 +1664,46 @@
                     return group;
                 }
 
-                // Window resize event handler 
+                // Window resize event handler
                 function onWindowResize() {
                     const newWidth = container.clientWidth;
                     const newHeight = container.clientHeight;
-                    
+
                     // Only update if dimensions actually changed
                     if (newWidth !== lastWidth || newHeight !== lastHeight) {
-                        // Update window half dimensions
-                        windowHalfX = window.innerWidth / 2;
-                        windowHalfY = window.innerHeight / 2;
+                        // Update viewport manager cache (single source of truth)
+                        viewport.update();
 
-                        // Update camera and renderer
-                        camera.aspect = newWidth / newHeight;
+                        // Use cached values from viewport manager
+                        windowHalfX = viewport.windowHalfX;
+                        windowHalfY = viewport.windowHalfY;
+
+                        // Calculate extended canvas height for animation overflow
+                        const extendedHeight = Math.round(newHeight * (1 + canvasExtension));
+
+                        // Update camera and renderer with extended dimensions
+                        camera.aspect = newWidth / extendedHeight;
                         camera.updateProjectionMatrix();
-                        renderer.setSize(newWidth, newHeight);
-                        
+                        renderer.setSize(newWidth, extendedHeight);
+
                         // Update lineMaterial resolution on resize
                         if (lineMaterial && lineMaterial.isLineMaterial) {
-                            lineMaterial.resolution.set(newWidth, newHeight);
+                            lineMaterial.resolution.set(newWidth, extendedHeight);
                         }
-                        
+
                         // Update head scale based on text size
                         updateHeadScaleBasedOnText();
-                        
+
                         // Adjust camera position for orientation
                         adjustCameraPosition();
-                        
+
                         // Adjust head position for orientation
                         adjustHeadPosition();
-                        
+
                         // Cache new dimensions
                         lastWidth = newWidth;
                         lastHeight = newHeight;
-                        
+
                         // Mark camera matrix for update
                         cameraMatrixNeedsUpdate = true;
                     }
@@ -1777,15 +1769,8 @@
                                 note.position.x = note.userData.originalX;
                             }
                         }
-                        // Add subtle head bob - maintain consistent base position
-                        const viewportWidth = window.innerWidth;
-                        const viewportHeight = window.innerHeight;
-                        const isLandscape = viewportWidth > viewportHeight;
-                        const isPhoneLandscape = isLandscape && viewportWidth <= 900 && viewportHeight <= 500;
-                        
                         // Ensure head stays at correct base position during whistle state
-                        const baseY = isPhoneLandscape ? 0.5 : (viewportWidth >= 768 && viewportWidth <= 1024) ? (isLandscape ? 0.3 : 0) : 0;
-                        head.position.y = baseY;
+                        head.position.y = viewport.animationBaseY;
                         head.rotation.y += Math.sin(time * 0.5) * 0.02; // Adjusted the multiplier
                     } else if (currentState === STATE.GIGGLING) {
                         // Head position is handled by the giggle interval
@@ -1796,13 +1781,7 @@
                     } else if (currentState === STATE.NORMAL) {
                          // Mouse tracking handled above
                          // Ensure head stays at correct base position during normal state
-                         const viewportWidth = window.innerWidth;
-                         const viewportHeight = window.innerHeight;
-                         const isLandscape = viewportWidth > viewportHeight;
-                         const isPhoneLandscape = isLandscape && viewportWidth <= 900 && viewportHeight <= 500;
-                         
-                         const baseY = isPhoneLandscape ? 0.5 : (viewportWidth >= 768 && viewportWidth <= 1024) ? (isLandscape ? 0.3 : 0) : 0;
-                         head.position.y = baseY;
+                         head.position.y = viewport.animationBaseY;
                     }
 
 
