@@ -886,7 +886,12 @@
                 
                 // Track if camera needs matrix update
                 let cameraMatrixNeedsUpdate = false;
-                
+
+                // Animation loop variables (defined outside animate() to reduce GC pressure)
+                let animCurrentTargetRotationY = 0;
+                let animCurrentTargetRotationX = 0;
+                const ROTATION_SPEED = 0.1;
+
                 // Cache container dimensions for resize optimization
                 let lastWidth = container.clientWidth;
                 let lastHeight = container.clientHeight;
@@ -1777,11 +1782,6 @@
                 // Call resize handler once to set initial size/scale
                 onWindowResize();
 
-                // Animation loop variables (defined outside to reduce GC pressure)
-                let animCurrentTargetRotationY = 0;
-                let animCurrentTargetRotationX = 0;
-                const ROTATION_SPEED = 0.1;
-
                 // Animation loop - uses RAF timestamp for better performance
                 function animate(timestamp) {
                     requestAnimationFrame(animate);
@@ -1866,7 +1866,7 @@
                 }
             } catch (error) {
                 document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
-                                    'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Reload and prepare to be dazzled again.</div>';
+                                    'Digital avatar failed to render. 🤯<br>' + error.message + '<br><br>Reload and prepare to be dazzled.</div>';
             }
         }
     </script>
