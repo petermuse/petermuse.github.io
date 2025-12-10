@@ -122,7 +122,7 @@
 
             /* Layout */
             --head-container-height: 25vh;
-            --head-container-margin: 0.5rem;
+            --head-container-margin: calc(var(--head-container-height) * -0.06);
         }
         body {
             margin: 0;
@@ -360,6 +360,7 @@
             :root {
                 --font-size-name: 4rem;
                 --head-container-height: 27vh;
+                --head-container-margin: calc(var(--head-container-height) * -0.07);
             }
         }
 
@@ -368,6 +369,7 @@
             :root {
                 --font-size-name: 4.5rem;
                 --head-container-height: 29vh;
+                --head-container-margin: calc(var(--head-container-height) * -0.08);
             }
         }
 
@@ -376,6 +378,7 @@
             :root {
                 --font-size-name: 5.2rem;
                 --head-container-height: 32vh;
+                --head-container-margin: calc(var(--head-container-height) * -0.09);
             }
         }
 
@@ -490,7 +493,7 @@
             retinaAdjustments: {
                 headYOffset: -0.08,    // Lower head slightly (appears higher on retina)
                 scaleMultiplier: 1.06, // Slightly larger (appears smaller on retina)
-                lineWidthMultiplier: 1.3  // Thicker lines (appear thinner on retina)
+                lineWidthMultiplier: 1.12 // Slightly thicker lines (appear thinner on retina)
             },
             // Phone landscape overrides (short + wide screens)
             phoneLandscape: {
@@ -726,13 +729,16 @@
                         // Note: dashed, dashScale, dashSize, gapSize properties are available for dashed lines
                     });
                     // Set resolution (important for LineMaterial)
+                    // Use base container height (not extended) for desired line thickness
                     let width = container.clientWidth;
                     let height = container.clientHeight;
                     if (width === 0 || height === 0) {
                         width = 1; // Default non-zero width
                         height = 1; // Default non-zero height
                     }
-                    material.resolution.set(width, height);
+                    // Multiply by pixel ratio to fix line thickness on retina displays
+                    const pixelRatio = viewport.cappedPixelRatio;
+                    material.resolution.set(width * pixelRatio, height * pixelRatio);
                     
                     // Apply consistent color brightness regardless of device
                     material.color.setRGB(0, 1, 0.1);
@@ -1732,9 +1738,11 @@
                         camera.updateProjectionMatrix();
                         renderer.setSize(newWidth, extendedHeight);
 
-                        // Update lineMaterial resolution on resize
+                        // Update lineMaterial resolution on resize (multiply by pixel ratio for retina)
+                        // Use base height (not extended) for consistent line thickness
                         if (lineMaterial && lineMaterial.isLineMaterial) {
-                            lineMaterial.resolution.set(newWidth, extendedHeight);
+                            const pixelRatio = viewport.cappedPixelRatio;
+                            lineMaterial.resolution.set(newWidth * pixelRatio, newHeight * pixelRatio);
                         }
 
                         // Update head scale based on text size
