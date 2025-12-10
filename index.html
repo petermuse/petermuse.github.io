@@ -386,12 +386,12 @@
         @media (max-height: 500px) and (orientation: landscape) {
             :root {
                 --font-size-name: 2.8rem;
-                --head-container-height: 30vh;
-                --head-container-margin: 0.5rem;
+                --head-container-height: 28vh;
+                --head-container-margin: calc(var(--head-container-height) * -0.07);
             }
 
             .linkedin-container {
-                margin-top: 1rem;
+                margin-top: 0.5rem;
             }
         }
 
@@ -496,12 +496,13 @@
                 lineWidthMultiplier: 1.12 // Slightly thicker lines (appear thinner on retina)
             },
             // Phone landscape overrides (short + wide screens)
+            // Settings closer to defaults for consistent appearance
             phoneLandscape: {
-                cameraFOV: 40,
-                cameraZ: 6.0,
-                cameraY: 0.2,
-                headY: 0.35,       // Adjusted for phone landscape
-                animationBaseY: 0.35
+                cameraFOV: 45,
+                cameraZ: 5.5,
+                cameraY: 0,
+                headY: -0.1,       // Slightly higher than default to fit short viewport
+                animationBaseY: -0.1
             }
         };
 
