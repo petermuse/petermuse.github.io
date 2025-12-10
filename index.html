@@ -1262,10 +1262,10 @@
                         // Giggling state overrides
                         gigglingMouth.visible = true;
                         archEyebrows(true); // Arch eyebrows for giggle
-                    } else if (newState === STATE.AWED) { // <-- NEW STATE CASE
+                    } else if (newState === STATE.AWED) {
                         // Awed state overrides
                         awedMouth.visible = true;
-                        archEyebrows(true); // Arch eyebrows for awed
+                        archEyebrows(true);
                     }
 
                 }
@@ -1845,8 +1845,7 @@
                         // Head position is handled by the giggle interval
                         // Mouse tracking is handled above
                     } else if (currentState === STATE.AWED) {
-                         // Maybe a very slight tremble or hold? Keep it simple for now.
-                         // Mouse tracking handled above
+                         head.position.y = viewport.animationBaseY;
                     } else if (currentState === STATE.NORMAL) {
                          // Mouse tracking handled above
                          // Ensure head stays at correct base position during normal state
