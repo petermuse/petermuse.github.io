@@ -1,0 +1,424 @@
+/* Self-hosted EB Garamond (400, 500) */
+@font-face {
+    font-family: 'EB Garamond';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('assets/fonts/ebgaramond/EBGaramond-400.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'EB Garamond';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('assets/fonts/ebgaramond/EBGaramond-500.ttf') format('truetype');
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    overflow: hidden;
+    height: 100%;
+    height: 100dvh;
+}
+
+:root {
+    /* Colors */
+    --blue: #1DACD6;
+    --red: #FF5349;
+    --green: #76FF7A;
+    --yellow: #FFCF48;
+    --purple: #C364C5;
+    --orange: #FF8833;
+    --mint: #71EEB8;
+    --gold: #FCD667;
+    --pink: #FF9999;
+    --head-color: #00ff00;
+    --linkedin-glow-gradient: linear-gradient(90deg, var(--blue), var(--red), var(--green), var(--yellow), var(--purple), var(--orange), var(--mint), var(--gold), var(--pink), var(--blue));
+
+    /* Responsive typography (mobile-first) */
+    --font-size-name: 3.5rem;
+
+    /* Layout */
+    --head-container-height: 25vh;
+    --head-container-margin: calc(var(--head-container-height) * -0.06);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    height: 100dvh;
+    /* Use dynamic viewport height for mobile */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: black;
+    color: white;
+    font-family: 'EB Garamond', serif;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    position: fixed;
+    /* Prevent mobile browser UI from affecting layout */
+    width: 100%;
+}
+
+/* State toggle controls for testing - set to display: none for publishing */
+#state-toggle {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--head-color);
+    color: var(--head-color);
+    font-family: monospace;
+    z-index: 10;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#state-toggle h3 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+    text-align: center;
+}
+
+#state-toggle button {
+    background: black;
+    color: var(--head-color);
+    border: 1px solid var(--head-color);
+    cursor: pointer;
+    padding: 5px;
+    transition: all 0.2s;
+    font-family: monospace;
+}
+
+#state-toggle button:hover {
+    background: var(--head-color);
+    color: black;
+}
+
+#state-toggle button.active {
+    background: var(--head-color);
+    color: black;
+    font-weight: bold;
+}
+
+/* Head canvas container - extends to top for animation overflow */
+#head-container {
+    width: 100%;
+    height: var(--head-container-height);
+    position: relative;
+    margin-bottom: var(--head-container-margin);
+    overflow: visible;
+}
+
+#head-container canvas {
+    display: block;
+    position: absolute;
+    bottom: 0;
+    /* Anchor to bottom so extra space is above */
+    left: 0;
+    width: 100%;
+    /* Pre-allocate extended height to prevent CLS (matches CANVAS_TOP_EXTENSION: 0.25) */
+    height: calc(var(--head-container-height) * 1.25);
+}
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+}
+
+.name {
+    font-size: var(--font-size-name);
+    font-weight: 500;
+    line-height: 0.9;
+    margin: 0;
+    padding: 0;
+    text-rendering: optimizeLegibility;
+    font-kerning: normal;
+    letter-spacing: 0.03em;
+    -webkit-font-smoothing: antialiased;
+    will-change: opacity;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+.first-name,
+.last-name {
+    display: flex;
+    justify-content: center;
+}
+
+.first-name {
+    margin-bottom: 0.05em;
+}
+
+@keyframes letterGlow {
+    0% {
+        text-shadow: none;
+    }
+
+    50% {
+        text-shadow:
+            0 0 1px rgba(255, 255, 255, 0.2),
+            0 0 2px rgba(255, 255, 255, 0.15);
+    }
+
+    100% {
+        text-shadow: none;
+    }
+}
+
+.letter {
+    position: relative;
+    display: inline-block;
+    opacity: 1;
+
+    animation: letterGlow 1.6s ease-out forwards;
+    /* animation-delay set per letter class below */
+
+    /* Use text-shadow only (no transforms) for better text rendering quality */
+    will-change: text-shadow;
+    backface-visibility: hidden;
+    contain: layout;
+}
+
+.letter-p {
+    margin-right: -0.05rem;
+    color: var(--blue);
+    animation-delay: 0.1s;
+}
+
+.letter-e1 {
+    margin-left: -0.07rem;
+    margin-right: -0.06rem;
+    color: var(--red);
+    animation-delay: 0.3s;
+}
+
+.letter-t {
+    margin-left: -0.085rem;
+    margin-right: -0.06rem;
+    color: var(--green);
+    animation-delay: 0.5s;
+}
+
+.letter-e2 {
+    margin-left: -0.075rem;
+    margin-right: -0.06rem;
+    color: var(--yellow);
+    animation-delay: 0.7s;
+}
+
+.letter-r {
+    margin-left: -0.08rem;
+    color: var(--purple);
+    animation-delay: 0.9s;
+}
+
+.letter-m {
+    margin-right: -0.05rem;
+    color: var(--orange);
+    animation-delay: 1.1s;
+}
+
+.letter-u {
+    margin-left: -0.07rem;
+    margin-right: -0.06rem;
+    color: var(--mint);
+    animation-delay: 1.3s;
+}
+
+.letter-s {
+    margin-left: -0.085rem;
+    margin-right: -0.06rem;
+    color: var(--gold);
+    animation-delay: 1.5s;
+}
+
+.letter-e3 {
+    margin-left: -0.075rem;
+    color: var(--pink);
+    animation-delay: 1.7s;
+}
+
+
+.name-container {
+    opacity: 1;
+    height: auto;
+    width: 100%;
+    text-align: center;
+}
+
+.linkedin-container {
+    position: static;
+    opacity: 0;
+    animation: fadeInLinkedIn 1s ease-in-out forwards;
+    animation-delay: 1.5s;
+    margin-top: 2rem;
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+}
+
+.linkedin-glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--linkedin-glow-gradient);
+    background-size: 200%;
+    border-radius: 10%;
+    opacity: 0;
+    filter: blur(8px);
+    z-index: -1;
+    transition: opacity 0.3s ease;
+}
+
+.linkedin-container:hover .linkedin-glow {
+    opacity: 0.7;
+    animation: glowAnimate 4s linear infinite;
+}
+
+.linkedin-svg {
+    width: 3rem;
+    height: 3rem;
+    fill: white;
+    transition: transform 0.3s ease;
+    z-index: 2;
+}
+
+.linkedin-container:hover .linkedin-svg {
+    transform: scale(1.05);
+}
+
+@keyframes glowAnimate {
+    0% {
+        background-position: 0%;
+    }
+
+    100% {
+        background-position: 200%;
+    }
+}
+
+@keyframes fadeInLinkedIn {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes breatheGlow {
+    0% {
+        filter: brightness(1) blur(0px);
+    }
+
+    50% {
+        filter: brightness(1.05) blur(0.3px);
+    }
+
+    100% {
+        filter: brightness(1) blur(0px);
+    }
+}
+
+/* Keyboard accessibility */
+#head-container:focus-visible {
+    outline: 2px solid var(--head-color);
+    outline-offset: -2px;
+}
+
+.linkedin-container a:focus-visible {
+    outline: 2px solid var(--head-color);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+/* ===========================================
+   RESPONSIVE BREAKPOINTS (Mobile-First)
+   Base: 0-479px (mobile portrait)
+   sm: 480px+ (large phones)
+   md: 768px+ (tablets)
+   lg: 1200px+ (desktops)
+   =========================================== */
+
+/* sm: Large phones (480px+) */
+@media (min-width: 480px) {
+    :root {
+        --font-size-name: 4rem;
+        --head-container-height: 27vh;
+        --head-container-margin: calc(var(--head-container-height) * -0.07);
+    }
+}
+
+/* md: Tablets (768px+) */
+@media (min-width: 768px) {
+    :root {
+        --font-size-name: 4.5rem;
+        --head-container-height: 29vh;
+        --head-container-margin: calc(var(--head-container-height) * -0.08);
+    }
+}
+
+/* lg: Desktops (1200px+) */
+@media (min-width: 1200px) {
+    :root {
+        --font-size-name: 5.2rem;
+        --head-container-height: 32vh;
+        --head-container-margin: calc(var(--head-container-height) * -0.09);
+    }
+}
+
+/* Special case: Phone landscape (short + wide screens) */
+@media (max-height: 500px) and (orientation: landscape) {
+    :root {
+        --font-size-name: 2.8rem;
+        --head-container-height: 28vh;
+        --head-container-margin: calc(var(--head-container-height) * -0.07);
+    }
+
+    .linkedin-container {
+        margin-top: 0.5rem;
+    }
+}
+
+/* Accessibility: Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .letter {
+        animation: none;
+        opacity: 1;
+    }
+
+    .linkedin-container {
+        animation: none;
+        opacity: 1;
+    }
+
+    .linkedin-svg {
+        animation: none;
+    }
+}
