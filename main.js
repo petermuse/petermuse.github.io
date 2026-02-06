@@ -1,0 +1,1412 @@
+// Head animation created with Claude AI (claude.ai)
+// Wait for the DOM to be fully loaded
+import * as THREE from './assets/vendor/three-local@0.128.0/build/three.module.js';
+import { Line2 } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/Line2.js';
+import { LineMaterial } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/LineMaterial.js';
+import { LineGeometry } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/LineGeometry.js';
+
+// ============================================
+// RESPONSIVE CONFIGURATION - Single Source of Truth
+// Matches CSS breakpoints: base (0), sm (480px), md (768px), lg (1200px)
+// ============================================
+const RESPONSIVE_CONFIG = {
+    // Breakpoints matching CSS mobile-first approach
+    breakpoints: {
+        SM: 480,    // Large phones
+        MD: 768,    // Tablets
+        LG: 1200,   // Desktops
+        PHONE_LANDSCAPE_MAX_HEIGHT: 500  // Special case for phone landscape
+    },
+    renderer: {
+        MAX_PIXEL_RATIO: 2,
+        CANVAS_TOP_EXTENSION: 0.25  // Extend canvas 25% taller for animation overflow
+    },
+    // Default camera/position settings (used for most breakpoints)
+    defaults: {
+        cameraFOV: 45,
+        cameraZ: 5.5,
+        cameraY: 0,
+        headY: -0.15,      // Slight shift down to center head in container
+        animationBaseY: -0.15
+    },
+    // Retina display adjustments (devicePixelRatio >= 2)
+    // Compensates for visual differences on HiDPI screens
+    retinaAdjustments: {
+        headYOffset: -0.08,    // Lower head slightly (appears higher on retina)
+        scaleMultiplier: 1.06, // Slightly larger (appears smaller on retina)
+        lineWidthMultiplier: 1.12 // Slightly thicker lines (appear thinner on retina)
+    },
+    // Phone landscape overrides (short + wide screens)
+    // Settings closer to defaults for consistent appearance
+    phoneLandscape: {
+        cameraFOV: 45,
+        cameraZ: 5.5,
+        cameraY: 0,
+        headY: -0.1,       // Slightly higher than default to fit short viewport
+        animationBaseY: -0.1
+    }
+};
+
+// ============================================
+// VIEWPORT MANAGER - Centralized Device Detection
+// ============================================
+class ViewportManager {
+    constructor(config) {
+        this.config = config;
+        this._cache = {
+            width: 0,
+            height: 0,
+            pixelRatio: 1,
+            isLandscape: false,
+            isPhoneLandscape: false,
+            windowHalfX: 0,
+            windowHalfY: 0
+        };
+        this._updateCache();
+    }
+
+    _updateCache() {
+        this._cache.width = window.innerWidth;
+        this._cache.height = window.innerHeight;
+        this._cache.pixelRatio = window.devicePixelRatio || 1;
+        this._cache.isLandscape = this._cache.width > this._cache.height;
+        this._cache.windowHalfX = this._cache.width / 2;
+        this._cache.windowHalfY = this._cache.height / 2;
+
+        // Phone landscape: short screen in landscape orientation
+        // Matches CSS: @media (max-height: 500px) and (orientation: landscape)
+        this._cache.isPhoneLandscape = this._cache.isLandscape &&
+            this._cache.height <= this.config.breakpoints.PHONE_LANDSCAPE_MAX_HEIGHT;
+    }
+
+    update() {
+        this._updateCache();
+    }
+
+    get width() { return this._cache.width; }
+    get height() { return this._cache.height; }
+    get pixelRatio() { return this._cache.pixelRatio; }
+    get isLandscape() { return this._cache.isLandscape; }
+    get isPhoneLandscape() { return this._cache.isPhoneLandscape; }
+    get isRetina() { return this._cache.pixelRatio >= 2; }
+    get windowHalfX() { return this._cache.windowHalfX; }
+    get windowHalfY() { return this._cache.windowHalfY; }
+
+    get cappedPixelRatio() {
+        return Math.min(this._cache.pixelRatio, this.config.renderer.MAX_PIXEL_RATIO);
+    }
+
+    // Retina adjustment helpers
+    get retinaHeadYOffset() {
+        return this.isRetina ? this.config.retinaAdjustments.headYOffset : 0;
+    }
+
+    get retinaScaleMultiplier() {
+        return this.isRetina ? this.config.retinaAdjustments.scaleMultiplier : 1;
+    }
+
+    get retinaLineWidthMultiplier() {
+        return this.isRetina ? this.config.retinaAdjustments.lineWidthMultiplier : 1;
+    }
+
+    // Settings getters - use phone landscape overrides when applicable
+    get headPositionY() {
+        const baseY = this._cache.isPhoneLandscape
+            ? this.config.phoneLandscape.headY
+            : this.config.defaults.headY;
+        return baseY + this.retinaHeadYOffset;
+    }
+
+    get cameraFOV() {
+        return this._cache.isPhoneLandscape
+            ? this.config.phoneLandscape.cameraFOV
+            : this.config.defaults.cameraFOV;
+    }
+
+    get cameraPositionZ() {
+        return this._cache.isPhoneLandscape
+            ? this.config.phoneLandscape.cameraZ
+            : this.config.defaults.cameraZ;
+    }
+
+    get cameraPositionY() {
+        return this._cache.isPhoneLandscape
+            ? this.config.phoneLandscape.cameraY
+            : this.config.defaults.cameraY;
+    }
+
+    get animationBaseY() {
+        return this._cache.isPhoneLandscape
+            ? this.config.phoneLandscape.animationBaseY
+            : this.config.defaults.animationBaseY;
+    }
+}
+
+// Initialize viewport manager (global for use across functions)
+const viewport = new ViewportManager(RESPONSIVE_CONFIG);
+
+// Throttle utility for event handlers (reduces main thread blocking)
+const throttle = (fn, delay = 16) => {
+    let lastCall = 0;
+    return function (...args) {
+        const now = Date.now();
+        if (now - lastCall >= delay) {
+            lastCall = now;
+            fn.apply(this, args);
+        }
+    };
+};
+
+let headRaycastTarget; // Declare here for wider scope
+
+// Cache elements - performance matters
+let stateToggleElement;
+let cachedButtons = [];
+let activeButton = null;
+
+// Konami code detection
+let konamiCode = [
+    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+    'KeyB', 'KeyA'
+];
+let konamiIndex = 0;
+
+document.addEventListener('keydown', function (e) {
+    if (e.code === konamiCode[konamiIndex]) {
+        konamiIndex++;
+        if (konamiIndex === konamiCode.length) {
+            // Konami code completed - toggle state controls
+            if (!stateToggleElement) stateToggleElement = document.getElementById('state-toggle');
+            const isHidden = window.getComputedStyle(stateToggleElement).display === 'none';
+            stateToggleElement.style.display = isHidden ? 'flex' : 'none';
+            konamiIndex = 0; // Reset for next time
+        }
+    } else {
+        konamiIndex = 0; // Reset if wrong key
+    }
+});
+
+window.addEventListener('DOMContentLoaded', function () {
+    // Initialize Three.js immediately after DOM is ready
+    setTimeout(initThreeJS, 0);
+});
+
+function initThreeJS() {
+    try {
+        // Check if Three.js is available
+        if (typeof THREE === 'undefined') {
+            document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
+                'Three.js library not loaded. Please reload the page.</div>';
+            return;
+        }
+        if (typeof LineMaterial === 'undefined' || typeof LineGeometry === 'undefined' || typeof Line2 === 'undefined') {
+            document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
+                'Line JSM modules not loaded. Please reload the page.</div>';
+            return;
+        }
+
+        // Refresh viewport cache now that DOM is fully ready
+        viewport.update();
+
+        // Scene, camera, renderer setup
+        const scene = new THREE.Scene();
+        const container = document.getElementById('head-container');
+
+        // Canvas extension for animation overflow (ZZZs, music notes float upward)
+        const canvasExtension = RESPONSIVE_CONFIG.renderer.CANVAS_TOP_EXTENSION;
+
+        // Use dynamic field of view based on device/orientation
+        function getCameraFOV() {
+            return viewport.cameraFOV;
+        }
+
+        // Calculate extended canvas height for proper aspect ratio
+        const initialExtendedHeight = container.clientHeight * (1 + canvasExtension);
+        const camera = new THREE.PerspectiveCamera(getCameraFOV(), container.clientWidth / initialExtendedHeight, 0.1, 1000);
+        camera.matrixAutoUpdate = true; // Explicitly ensure matrixAutoUpdate is on
+        scene.add(camera); // Add camera to the scene
+
+        // Function to adjust camera for different orientations
+        // Camera Y is offset to account for extended canvas (head renders in lower portion)
+        function adjustCameraPosition() {
+            camera.position.z = viewport.cameraPositionZ;
+            // Shift camera up so head appears in lower portion of extended canvas
+            const cameraYOffset = canvasExtension * 0.5;  // Offset based on extension
+            camera.position.y = viewport.cameraPositionY + cameraYOffset;
+            camera.fov = viewport.cameraFOV;
+            camera.updateProjectionMatrix();
+        }
+
+        // Function to adjust head position for different orientations
+        function adjustHeadPosition() {
+            head.position.y = viewport.headPositionY;
+        }
+
+        // WebGL renderer with antialiasing and transparency
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+            preserveDrawingBuffer: false,
+            powerPreference: "high-performance"
+        });
+
+        // Set canvas size with extension for animation overflow
+        const extendedHeight = Math.round(container.clientHeight * (1 + canvasExtension));
+        renderer.setSize(container.clientWidth, extendedHeight);
+        renderer.setClearColor(0x000000, 1);
+
+        // Set pixel ratio but cap it for very high-DPI devices to prevent overly thin lines
+        renderer.setPixelRatio(viewport.cappedPixelRatio);
+
+        // Raycaster reused across frames for performance
+        const raycaster = new THREE.Raycaster();
+        raycaster.params.Line = raycaster.params.Line || {};
+        raycaster.params.Line.threshold = 0.1;
+
+        container.appendChild(renderer.domElement);
+
+        // Standardized line material function with device-independent settings
+        function createLineMaterial() {
+            // Apply retina adjustment for line width (lines appear thinner on retina)
+            const baseLineWidth = 1.5;
+            const adjustedLineWidth = baseLineWidth * viewport.retinaLineWidthMultiplier;
+
+            const material = new LineMaterial({ // Use imported LineMaterial
+                color: 0x00ff00,
+                linewidth: adjustedLineWidth, // Screen-space pixels, adjusted for retina
+                transparent: true,
+                opacity: 0.8
+                // Note: dashed, dashScale, dashSize, gapSize properties are available for dashed lines
+            });
+            // Set resolution (important for LineMaterial)
+            // Use base container height (not extended) for desired line thickness
+            let width = container.clientWidth;
+            let height = container.clientHeight;
+            if (width === 0 || height === 0) {
+                width = 1; // Default non-zero width
+                height = 1; // Default non-zero height
+            }
+            // Multiply by pixel ratio to fix line thickness on retina displays
+            const pixelRatio = viewport.cappedPixelRatio;
+            material.resolution.set(width * pixelRatio, height * pixelRatio);
+
+            // Apply consistent color brightness regardless of device
+            material.color.setRGB(0, 1, 0.1);
+
+            return material;
+        }
+
+        // Materials
+        const lineMaterial = createLineMaterial();
+
+        // Animation states
+        const STATE = {
+            SLEEPING: 'sleeping',
+            WHISTLING: 'whistling',
+            NORMAL: 'normal',
+            GIGGLING: 'giggling',
+            AWED: 'awed'
+        };
+
+        // Current state tracking
+        let currentState = null;
+        let lastStateChange = Date.now();
+        let lastActivity = Date.now();
+        const INACTIVITY_THRESHOLD = 10000; // 10 seconds
+        let autoStateEnabled = true; // Toggle for auto state changes
+
+        // Mouse tracking (only used when not in sleeping hours)
+        let mouseX = 0;
+        let mouseY = 0;
+        let targetRotationX = 0;
+        let targetRotationY = 0;
+        let windowHalfX = viewport.windowHalfX;
+        let windowHalfY = viewport.windowHalfY;
+
+        // Reference to the name element
+        const nameElement = document.querySelector('.name');
+        if (!nameElement) {
+            document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
+                'Name element not found. Please reload the page.</div>';
+            return;
+        }
+
+        // Create head with scale that matches text proportions
+        const head = new THREE.Group();
+        scene.add(head);
+
+        // Scale head based on actual text size for consistent ratio
+        // Reference: 1.35 scale at 83.2px font size (5.2rem at 16px base)
+        // This is ~12% larger than the original 1.2 scale
+        const REFERENCE_FONT_SIZE = 83.2;
+        const REFERENCE_SCALE = 1.35;
+
+        function getHeadScale() {
+            // Get actual computed font size of the name element
+            const computedStyle = window.getComputedStyle(nameElement);
+            const fontSize = parseFloat(computedStyle.fontSize);
+
+            // Scale proportionally to maintain consistent head-to-text ratio
+            let scale = REFERENCE_SCALE * (fontSize / REFERENCE_FONT_SIZE);
+
+            // Apply retina adjustment (head appears smaller on retina)
+            scale *= viewport.retinaScaleMultiplier;
+
+            // Clamp to reasonable range
+            return Math.max(0.5, Math.min(1.8, scale));
+        }
+
+        head.scale.set(1, 1, 1); // Will be updated by updateHeadScaleBasedOnText
+
+        // Create an invisible sphere for raycasting
+        const sphereRadius = 1.2; // Adjust if necessary
+        const headRaycastGeometry = new THREE.SphereGeometry(sphereRadius, 16, 16); // Default segments are fine
+        const headRaycastMaterial = new THREE.MeshBasicMaterial({ visible: false });
+        headRaycastTarget = new THREE.Mesh(headRaycastGeometry, headRaycastMaterial);
+        headRaycastTarget.name = 'headRaycastTarget'; // Optional: for easier identification in logs
+        head.add(headRaycastTarget);
+
+        // Keep head-to-text ratio looking good
+        function updateHeadScaleBasedOnText() {
+            const scale = getHeadScale();
+            head.scale.set(scale, scale, scale);
+        }
+
+        // Create face components
+        const eyesGroup = new THREE.Group();
+        head.add(eyesGroup);
+
+        // Different eye states - windows to the digital soul
+        const leftEyeOpen = createEye(-0.45, 'open');
+        const rightEyeOpen = createEye(0.45, 'open');
+        eyesGroup.add(leftEyeOpen);
+        eyesGroup.add(rightEyeOpen);
+
+        const leftEyeClosed = createEye(-0.45, 'closed');
+        const rightEyeClosed = createEye(0.45, 'closed');
+        leftEyeClosed.visible = false;
+        rightEyeClosed.visible = false;
+        eyesGroup.add(leftEyeClosed);
+        eyesGroup.add(rightEyeClosed);
+
+        // Different mouth states
+        const normalMouth = createMouth('normal');
+        const whistlingMouth = createMouth('whistling');
+        const gigglingMouth = createMouth('giggling');
+        const awedMouth = createMouth('awed');
+        head.add(normalMouth);
+        head.add(whistlingMouth);
+        head.add(gigglingMouth);
+        head.add(awedMouth);
+        whistlingMouth.visible = false;
+        gigglingMouth.visible = false;
+        awedMouth.visible = false;
+
+        // Create animation elements
+        const zzzGroup = createZzzGroup();
+        zzzGroup.visible = false;
+        scene.add(zzzGroup);
+
+        const musicNotesGroup = createMusicNotesGroup();
+        musicNotesGroup.visible = false;
+        scene.add(musicNotesGroup);
+
+        // Create face outline and other facial features
+        head.add(createFaceOutline());
+        head.add(createNose());
+
+        // After creating the eyebrows
+        const eyebrows = createEyebrows();
+        head.add(eyebrows);
+
+        // Set initial head scale based on current text size
+        updateHeadScaleBasedOnText();
+
+        // Giggle timer control
+        let giggleIntervalId = null;
+
+        // Track if camera needs matrix update
+        let cameraMatrixNeedsUpdate = false;
+
+        // Animation loop variables (defined outside animate() to reduce GC pressure)
+        let animCurrentTargetRotationY = 0;
+        let animCurrentTargetRotationX = 0;
+        const ROTATION_SPEED = 0.1;
+
+        // Cache container dimensions for resize optimization
+        let lastWidth = container.clientWidth;
+        let lastHeight = container.clientHeight;
+
+        // Event listeners for entire document (mouse tracking across whole page)
+        // Throttled to 60fps to reduce main thread blocking
+        document.addEventListener('mousemove', throttle(function (event) {
+            // Update last activity time
+            lastActivity = Date.now();
+
+            // Calculate mouse position relative to the window center
+            mouseX = (event.clientX - windowHalfX) / 50;
+            mouseY = (event.clientY - windowHalfY) / 50;
+
+            // If in whistling state, switch back to normal (only if auto state is enabled and not sleeping)
+            if (autoStateEnabled && (currentState === STATE.WHISTLING) && !isCaliforniaSleepTime()) {
+                switchToState(STATE.NORMAL);
+            }
+        }, 16));
+
+        // Add touch support for mobile devices
+        document.addEventListener('touchstart', function (event) {
+            // Update last activity time on touch start
+            lastActivity = Date.now();
+
+            // If in whistling or awed state, switch back to normal (only if auto state is enabled and not sleeping)
+            if (autoStateEnabled && (currentState === STATE.WHISTLING) && !isCaliforniaSleepTime()) {
+                switchToState(STATE.NORMAL);
+            }
+        }, { passive: false });
+
+        // Throttled touchmove handler for performance
+        const handleTouchMove = throttle(function (event) {
+            // Update last activity time
+            lastActivity = Date.now();
+
+            // Only process single touch, ignore multi-touch
+            if (event.touches.length === 1) {
+                const touch = event.touches[0];
+
+                // Get the canvas bounds to properly calculate touch position
+                const rect = renderer.domElement.getBoundingClientRect();
+                const canvasCenterX = rect.left + rect.width / 2;
+                const canvasCenterY = rect.top + rect.height / 2;
+
+                // Calculate touch position relative to the canvas center
+                mouseX = (touch.clientX - canvasCenterX) / 50;
+                mouseY = (touch.clientY - canvasCenterY) / 50;
+
+                // If in whistling state, switch back to normal
+                if (autoStateEnabled && (currentState === STATE.WHISTLING) && !isCaliforniaSleepTime()) {
+                    switchToState(STATE.NORMAL);
+                }
+            }
+        }, 16);
+
+        document.addEventListener('touchmove', function (event) {
+            event.preventDefault(); // Always prevent scrolling
+            handleTouchMove(event);
+        }, { passive: false });
+
+        // Add keyboard activity tracking too
+        document.addEventListener('keydown', function () {
+            lastActivity = Date.now();
+
+            // If in whistling or awed state, switch back to normal (only if auto state is enabled and not sleeping)
+            if (autoStateEnabled && (currentState === STATE.WHISTLING || currentState === STATE.AWED) && !isCaliforniaSleepTime()) {
+                switchToState(STATE.NORMAL);
+            }
+        });
+
+        // Shared function to handle head interaction (click/tap)
+        function handleHeadInteraction(clientX, clientY, targetElement) {
+            // Calculate position in normalized device coordinates (-1 to +1) for both components
+            const interactionVector = new THREE.Vector2();
+            const rect = targetElement.getBoundingClientRect();
+            interactionVector.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+            interactionVector.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+            // Manual Ray Calculation (reuse cached raycaster)
+            const rayOrigin = camera.position.clone(); // Ray originates from camera's current position
+            const rayDirection = new THREE.Vector3(interactionVector.x, interactionVector.y, 0.5); // Start with normalized device coords
+
+            camera.updateMatrixWorld(true); // Force update of camera's world matrix just before unproject
+            rayDirection.unproject(camera); // Convert from NDC to world space via camera
+            rayDirection.sub(rayOrigin).normalize(); // Get direction vector from camera to world point and normalize
+
+            raycaster.set(rayOrigin, rayDirection); // Set the raycaster with this manually computed ray
+            raycaster.camera = camera; // Provide camera reference for LineSegments2 raycasting
+            const intersects = raycaster.intersectObject(headRaycastTarget, false); // Intersect with the sphere, not recursive
+
+            // Only respond to interactions during waking hours and if not already giggling, sleeping, or awed, AND if the interaction intersects the head
+            if (intersects.length > 0 && !isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
+                lastActivity = Date.now(); // Count this as activity
+
+                // Clear any existing giggle interval before starting a new one
+                if (giggleIntervalId !== null) {
+                    clearInterval(giggleIntervalId);
+                    giggleIntervalId = null;
+                    adjustHeadPosition(); // Reset head position immediately
+                }
+
+                switchToState(STATE.GIGGLING);
+
+                // Make the head do a little bounce while giggling
+                let giggleStartTime = Date.now();
+
+                // Create a small giggle animation interval
+                giggleIntervalId = setInterval(() => {
+                    // Check if we are still supposed to be giggling
+                    if (currentState !== STATE.GIGGLING) {
+                        clearInterval(giggleIntervalId);
+                        giggleIntervalId = null;
+                        adjustHeadPosition(); // Reset head position
+                        return; // Exit interval function
+                    }
+
+                    // Small random head movements for giggling effect
+                    const giggleOffset = Math.sin((Date.now() - giggleStartTime) * 0.02) * 0.03;
+                    head.position.y = viewport.animationBaseY + giggleOffset;
+
+                    // Check if we should stop giggling based on time
+                    if (Date.now() - giggleStartTime > 2000) { // 2 seconds of giggling
+                        clearInterval(giggleIntervalId);
+                        giggleIntervalId = null;
+                        adjustHeadPosition(); // Reset head position
+
+                        // Switch back only if still in GIGGLING state
+                        if (currentState === STATE.GIGGLING) {
+                            switchToState(STATE.NORMAL);
+                        }
+                    }
+                }, 16); // ~60fps
+            }
+        }
+
+        // Add click event listener for giggling
+        renderer.domElement.addEventListener('click', function (event) {
+            handleHeadInteraction(event.clientX, event.clientY, event.target);
+        });
+
+        // Add touch event listener for mobile giggling
+        renderer.domElement.addEventListener('touchend', function (event) {
+            // Prevent default to avoid triggering click events on mobile
+            event.preventDefault();
+
+            // Only process single touch, ignore multi-touch
+            if (event.changedTouches.length === 1) {
+                const touch = event.changedTouches[0];
+                handleHeadInteraction(touch.clientX, touch.clientY, event.target);
+            }
+        }, { passive: false });
+
+        // --- LinkedIn Hover Event Listeners ---
+        const linkedinContainer = document.querySelector('.linkedin-container');
+        if (linkedinContainer) {
+            linkedinContainer.addEventListener('mouseenter', () => {
+                // Only switch to AWED from NORMAL or WHISTLING states during waking hours
+                if (!isCaliforniaSleepTime() && (currentState === STATE.NORMAL || currentState === STATE.WHISTLING)) {
+                    lastActivity = Date.now(); // Register hover as activity
+                    switchToState(STATE.AWED);
+                }
+            });
+
+            linkedinContainer.addEventListener('mouseleave', () => {
+                // Only switch back from AWED state
+                if (currentState === STATE.AWED) {
+                    // Check inactivity again to decide if it should go to WHISTLING or NORMAL
+                    const inactiveTime = Date.now() - lastActivity;
+                    if (autoStateEnabled && inactiveTime >= INACTIVITY_THRESHOLD && !isCaliforniaSleepTime()) {
+                        switchToState(STATE.WHISTLING);
+                    } else {
+                        switchToState(STATE.NORMAL);
+                    }
+                }
+            });
+        } else {
+            document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
+                'LinkedIn container not found. Please reload the page.</div>';
+        }
+
+        // Cache buttons for performance
+        if (!stateToggleElement) stateToggleElement = document.getElementById('state-toggle');
+        cachedButtons = {
+            normal: document.getElementById('normal-btn'),
+            whistling: document.getElementById('whistling-btn'),
+            sleeping: document.getElementById('sleeping-btn'),
+            auto: document.getElementById('auto-btn')
+        };
+
+        // Setup event listeners for state toggle buttons
+        cachedButtons.normal.addEventListener('click', function () {
+            autoStateEnabled = false;
+            switchToState(STATE.NORMAL);
+            updateActiveButton('normal-btn');
+        });
+
+        cachedButtons.whistling.addEventListener('click', function () {
+            autoStateEnabled = false;
+            switchToState(STATE.WHISTLING);
+            updateActiveButton('whistling-btn');
+        });
+
+        cachedButtons.sleeping.addEventListener('click', function () {
+            autoStateEnabled = false;
+            switchToState(STATE.SLEEPING);
+            updateActiveButton('sleeping-btn');
+        });
+
+        cachedButtons.auto.addEventListener('click', function () {
+            autoStateEnabled = true;
+            updateStateBasedOnTime(); // Re-evaluate current state
+            updateActiveButton('auto-btn');
+        });
+
+        // Function to update which button is active - UX matters, even for test controls
+        function updateActiveButton(activeButtonId) {
+            // Remove active class from current active button
+            if (activeButton) {
+                activeButton.classList.remove('active');
+            }
+
+            // Add active class to the clicked button
+            activeButton = document.getElementById(activeButtonId);
+            activeButton.classList.add('active');
+        }
+
+        window.addEventListener('resize', onWindowResize);
+
+        // Initial setup
+        adjustHeadPosition(); // Ensure head is positioned correctly on load
+        adjustCameraPosition(); // Ensure camera is positioned correctly on load
+        updateStateBasedOnTime();
+        if (autoStateEnabled) { // Set initial active button if auto is enabled
+            updateActiveButton('auto-btn');
+        } else {
+            // Find the button corresponding to the initial state and set it active
+            const initialStateButtonId = currentState + '-btn';
+            if (document.getElementById(initialStateButtonId)) {
+                updateActiveButton(initialStateButtonId);
+            } else {
+                updateActiveButton('normal-btn'); // Default if state button doesn't exist
+            }
+        }
+
+
+        // Store interval IDs for cleanup
+        const timeCheckInterval = setInterval(updateStateBasedOnTime, 60000);
+        const inactivityCheckInterval = setInterval(checkInactivity, 1000);
+
+        // Cleanup function to prevent memory leaks
+        window.addEventListener('beforeunload', function () {
+            if (giggleIntervalId !== null) {
+                clearInterval(giggleIntervalId);
+            }
+            clearInterval(timeCheckInterval);
+            clearInterval(inactivityCheckInterval);
+        });
+
+        // Start animation loop
+        animate();
+
+        // Ensure initial size is set correctly after potential layout delays
+        onWindowResize();
+
+        // Time checking functions
+        function isCaliforniaSleepTime() {
+            const now = new Date();
+
+            // Convert to Hollywood time (PT) - where dreams are made
+            const californiaNow = new Date(now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+            const hours = californiaNow.getHours();
+
+            // Sleep time is 10pm (22) to 6am (6) - we respect work-life balance
+            return hours >= 22 || hours < 6;
+        }
+
+        function updateStateBasedOnTime() {
+            // Only change state automatically if auto state is enabled
+            if (autoStateEnabled) {
+                const sleepTime = isCaliforniaSleepTime();
+                // Don't interrupt AWED or GIGGLING states with time-based changes
+                if (currentState === STATE.AWED || currentState === STATE.GIGGLING) return;
+
+
+                if (sleepTime && currentState !== STATE.SLEEPING) {
+                    // Time for digital dreams - switch to sleeping state
+                    switchToState(STATE.SLEEPING);
+                    updateActiveButton('auto-btn'); // Ensure auto button is marked active
+                } else if (!sleepTime && (currentState === null || currentState === STATE.SLEEPING)) {
+                    // Rise and shine! Time to start the day in NORMAL state
+                    switchToState(STATE.NORMAL);
+                    updateActiveButton('auto-btn'); // Ensure auto button is marked active
+                }
+            }
+        }
+
+        // Check user inactivity for auto-engage behavior
+        function checkInactivity() {
+            // Only check for inactivity during non-sleep time and if auto state is enabled
+            // Also, don't switch to WHISTLING if currently AWED or GIGGLING
+            if (autoStateEnabled && !isCaliforniaSleepTime() && currentState !== STATE.AWED && currentState !== STATE.GIGGLING) {
+                const now = Date.now();
+                const inactiveTime = now - lastActivity;
+
+                // If inactive for threshold and in NORMAL state, switch to WHISTLING
+                if (inactiveTime >= INACTIVITY_THRESHOLD && currentState === STATE.NORMAL) {
+                    switchToState(STATE.WHISTLING);
+                    // No need to update button here as it should already be 'auto'
+                }
+            }
+        }
+
+        function switchToState(newState) {
+            // Prevent redundant state changes
+            if (currentState === newState) return;
+
+            // If currently giggling, clear the interval
+            if (currentState === STATE.GIGGLING && giggleIntervalId !== null) {
+                clearInterval(giggleIntervalId);
+                giggleIntervalId = null;
+                adjustHeadPosition(); // Reset head position
+            }
+
+            // Fresh start with each mood swing
+            lastStateChange = Date.now();
+
+            // Identity updated - existential crisis averted
+            currentState = newState;
+
+            // Default visibility settings (most states need these)
+            leftEyeOpen.visible = true;
+            rightEyeOpen.visible = true;
+            leftEyeClosed.visible = false;
+            rightEyeClosed.visible = false;
+            normalMouth.visible = false;
+            whistlingMouth.visible = false;
+            gigglingMouth.visible = false;
+            awedMouth.visible = false;
+            zzzGroup.visible = false;
+            musicNotesGroup.visible = false;
+            eyebrows.visible = true;
+            archEyebrows(false);
+
+
+            if (newState === STATE.SLEEPING) {
+                // Sleeping state overrides
+                leftEyeOpen.visible = false;
+                rightEyeOpen.visible = false;
+                leftEyeClosed.visible = true;
+                rightEyeClosed.visible = true;
+                normalMouth.visible = true;
+                zzzGroup.visible = true;
+                eyebrows.visible = false; // Hide eyebrows during sleep
+            } else if (newState === STATE.WHISTLING) {
+                // Whistling state overrides
+                whistlingMouth.visible = true;
+                musicNotesGroup.visible = true;
+                // Tune up for the next performance
+                musicNotesGroup.children.forEach((note, i) => {
+                    note.position.y = 1.5 + (i * 0.2);
+                    note.position.x = 0.1 + (i * 0.15);
+                });
+            } else if (newState === STATE.NORMAL) {
+                // Normal state overrides
+                normalMouth.visible = true;
+            } else if (newState === STATE.GIGGLING) {
+                // Giggling state overrides
+                gigglingMouth.visible = true;
+                archEyebrows(true); // Arch eyebrows for giggle
+            } else if (newState === STATE.AWED) {
+                // Awed state overrides
+                awedMouth.visible = true;
+                archEyebrows(true);
+            }
+
+        }
+
+        // Function to create eye (different states)
+        function createEye(xOffset, state) {
+            const eye = new THREE.Group();
+            eye.position.z = 1;
+
+            if (state === 'open') {
+                // Diamond eyes - eternal digital vigilance
+                const outlinePoints = [
+                    new THREE.Vector3(xOffset - 0.2, 0.3, 0),
+                    new THREE.Vector3(xOffset, 0.4, 0),
+                    new THREE.Vector3(xOffset + 0.2, 0.3, 0),
+                    new THREE.Vector3(xOffset, 0.2, 0),
+                    new THREE.Vector3(xOffset - 0.2, 0.3, 0)
+                ];
+
+                const flattenedOutlinePoints = [];
+                outlinePoints.forEach(p => flattenedOutlinePoints.push(p.x, p.y, p.z));
+                const outlineGeometry = new LineGeometry(); // Use imported LineGeometry
+                outlineGeometry.setPositions(flattenedOutlinePoints);
+                const outline = new Line2(outlineGeometry, lineMaterial); // Use imported Line2
+                outline.computeLineDistances();
+                eye.add(outline);
+
+                // Pupil - staring into your soul since 2024
+                const pupilGeometry = new THREE.PlaneGeometry(0.05, 0.05);
+                const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+                const pupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+                pupil.position.set(xOffset, 0.3, 0.1);
+                eye.add(pupil);
+
+            } else if (state === 'closed') {
+                // Closed eyes - digital beauty sleep
+                const points = [
+                    new THREE.Vector3(xOffset - 0.2, 0.3, 0),
+                    new THREE.Vector3(xOffset + 0.2, 0.3, 0)
+                ];
+
+                const flattenedPoints = [];
+                points.forEach(p => flattenedPoints.push(p.x, p.y, p.z));
+                const geometry = new LineGeometry(); // Use imported LineGeometry
+                geometry.setPositions(flattenedPoints);
+                const line = new Line2(geometry, lineMaterial); // Use imported Line2
+                line.computeLineDistances();
+                eye.add(line);
+            }
+
+            return eye;
+        }
+
+        // Function to create different mouth states
+        function createMouth(type) {
+            const mouth = new THREE.Group();
+            mouth.position.z = 1;
+
+            let points = [];
+            if (type === 'normal') {
+                // More pronounced smile with more points
+                points = [
+                    new THREE.Vector3(-0.35, -0.45, 0),
+                    new THREE.Vector3(-0.2, -0.53, 0),
+                    new THREE.Vector3(0, -0.55, 0),
+                    new THREE.Vector3(0.2, -0.53, 0),
+                    new THREE.Vector3(0.35, -0.45, 0)
+                ];
+            } else if (type === 'whistling') {
+                // Small "o" shape for whistling
+                const segments = 16; // More segments for smoother circle
+                const radius = 0.07; // Smaller lip radius
+
+                for (let i = 0; i <= segments; i++) {
+                    const theta = (i / segments) * Math.PI * 2;
+                    points.push(new THREE.Vector3(
+                        Math.cos(theta) * radius,
+                        Math.sin(theta) * radius - 0.5, // Positioned slightly lower
+                        0
+                    ));
+                }
+            } else if (type === 'awed') { // <-- NEW MOUTH TYPE
+                // Slightly larger "o" shape for awed
+                const segments = 18; // Smoother circle
+                const radius = 0.12; // Larger radius than whistling
+
+                for (let i = 0; i <= segments; i++) {
+                    const theta = (i / segments) * Math.PI * 2;
+                    points.push(new THREE.Vector3(
+                        Math.cos(theta) * radius,
+                        Math.sin(theta) * radius - 0.52, // Positioned slightly lower
+                        0
+                    ));
+                }
+            } else if (type === 'giggling') {
+                // Wide open laughing mouth - more exaggerated smile
+                points = [
+                    new THREE.Vector3(-0.4, -0.4, 0),
+                    new THREE.Vector3(-0.25, -0.48, 0),
+                    new THREE.Vector3(0, -0.62, 0),  // Deeper in the middle
+                    new THREE.Vector3(0.25, -0.48, 0),
+                    new THREE.Vector3(0.4, -0.4, 0)
+                ];
+            }
+
+            const flattenedPoints = [];
+            points.forEach(p => flattenedPoints.push(p.x, p.y, p.z));
+            const geometry = new LineGeometry(); // Use imported LineGeometry
+            geometry.setPositions(flattenedPoints);
+            const line = new Line2(geometry, lineMaterial); // Use imported Line2
+            line.computeLineDistances();
+            mouth.add(line);
+
+            return mouth;
+        }
+
+        // Function to create face outline
+        function createFaceOutline() {
+            const points = [
+                // Top center
+                new THREE.Vector3(0, 1.4, 0),
+
+                // Top right curve - more angular/stepped
+                new THREE.Vector3(0.4, 1.35, 0),
+                new THREE.Vector3(0.7, 1.2, 0),
+                new THREE.Vector3(0.9, 1.0, 0),
+                new THREE.Vector3(1.0, 0.8, 0),
+                new THREE.Vector3(1.1, 0.5, 0),
+
+                // Right side
+                new THREE.Vector3(1.15, 0.2, 0),
+                new THREE.Vector3(1.15, -0.1, 0),
+                new THREE.Vector3(1.1, -0.3, 0),
+
+                // Right jaw - more rounded
+                new THREE.Vector3(1.0, -0.5, 0),
+                new THREE.Vector3(0.8, -0.65, 0),
+                new THREE.Vector3(0.5, -0.75, 0),
+
+                // Bottom center - more rounded
+                new THREE.Vector3(0.25, -0.8, 0),
+                new THREE.Vector3(0, -0.82, 0),
+                new THREE.Vector3(-0.25, -0.8, 0),
+
+                // Left jaw - more rounded
+                new THREE.Vector3(-0.5, -0.75, 0),
+                new THREE.Vector3(-0.8, -0.65, 0),
+                new THREE.Vector3(-1.0, -0.5, 0),
+
+                // Left side
+                new THREE.Vector3(-1.1, -0.3, 0),
+                new THREE.Vector3(-1.15, -0.1, 0),
+                new THREE.Vector3(-1.15, 0.2, 0),
+
+                // Top left curve - more angular/stepped
+                new THREE.Vector3(-1.1, 0.5, 0),
+                new THREE.Vector3(-1.0, 0.8, 0),
+                new THREE.Vector3(-0.9, 1.0, 0),
+                new THREE.Vector3(-0.7, 1.2, 0),
+                new THREE.Vector3(-0.4, 1.35, 0),
+
+                // Back to top
+                new THREE.Vector3(0, 1.4, 0)
+            ];
+
+            const flattenedPoints = [];
+            points.forEach(p => flattenedPoints.push(p.x, p.y, p.z));
+            const geometry = new LineGeometry(); // Use imported LineGeometry
+            geometry.setPositions(flattenedPoints);
+            const line = new Line2(geometry, lineMaterial); // Use imported Line2
+            line.computeLineDistances();
+            line.position.z = 0.6;
+
+            return line;
+        }
+
+        // Function to create nose
+        function createNose() {
+            const noseGroup = new THREE.Group();
+
+            // Vertical line
+            const verticalPoints = [
+                new THREE.Vector3(0, 0.1, 0),
+                new THREE.Vector3(0, -0.15, 0)
+            ];
+
+            const flattenedVerticalPoints = [];
+            verticalPoints.forEach(p => flattenedVerticalPoints.push(p.x, p.y, p.z));
+            const verticalGeometry = new LineGeometry(); // Use imported LineGeometry
+            verticalGeometry.setPositions(flattenedVerticalPoints);
+            const verticalLine = new Line2(verticalGeometry, lineMaterial); // Use imported Line2
+            verticalLine.computeLineDistances();
+            noseGroup.add(verticalLine);
+
+            // Horizontal part
+            const horizontalPoints = [
+                new THREE.Vector3(-0.1, -0.15, 0),
+                new THREE.Vector3(0.1, -0.15, 0)
+            ];
+
+            const flattenedHorizontalPoints = [];
+            horizontalPoints.forEach(p => flattenedHorizontalPoints.push(p.x, p.y, p.z));
+            const horizontalGeometry = new LineGeometry(); // Use imported LineGeometry
+            horizontalGeometry.setPositions(flattenedHorizontalPoints);
+            const horizontalLine = new Line2(horizontalGeometry, lineMaterial); // Use imported Line2
+            horizontalLine.computeLineDistances();
+            noseGroup.add(horizontalLine);
+
+            noseGroup.position.z = 1.2;
+
+            return noseGroup;
+        }
+
+
+        // Function to create eyebrows (new function)
+        function createEyebrows() {
+            const eyebrowGroup = new THREE.Group();
+
+            // Left eyebrow
+            const leftEyebrowPoints = [
+                new THREE.Vector3(-0.6, 0.5, 0),
+                new THREE.Vector3(-0.3, 0.5, 0)
+            ];
+
+            const flattenedLeftEyebrowPoints = [];
+            leftEyebrowPoints.forEach(p => flattenedLeftEyebrowPoints.push(p.x, p.y, p.z));
+            const leftEyebrowGeometry = new LineGeometry(); // Use imported LineGeometry
+            leftEyebrowGeometry.setPositions(flattenedLeftEyebrowPoints);
+            const leftEyebrow = new Line2(leftEyebrowGeometry, lineMaterial); // Use imported Line2
+            leftEyebrow.computeLineDistances();
+            eyebrowGroup.add(leftEyebrow);
+
+            // Right eyebrow
+            const rightEyebrowPoints = [
+                new THREE.Vector3(0.3, 0.5, 0),
+                new THREE.Vector3(0.6, 0.5, 0)
+            ];
+
+            const flattenedRightEyebrowPoints = [];
+            rightEyebrowPoints.forEach(p => flattenedRightEyebrowPoints.push(p.x, p.y, p.z));
+            const rightEyebrowGeometry = new LineGeometry(); // Use imported LineGeometry
+            rightEyebrowGeometry.setPositions(flattenedRightEyebrowPoints);
+            const rightEyebrow = new Line2(rightEyebrowGeometry, lineMaterial); // Use imported Line2
+            rightEyebrow.computeLineDistances();
+            eyebrowGroup.add(rightEyebrow);
+
+            eyebrowGroup.position.z = 1.1;
+
+
+            return eyebrowGroup;
+        }
+
+        // Function to adjust eyebrow positions
+        function archEyebrows(arched) {
+            if (arched) {
+                // Create elevated arched eyebrows for giggling or surprise
+                eyebrows.children[0].position.y = 0.15; // Raise left eyebrow
+                eyebrows.children[1].position.y = 0.15; // Raise right eyebrow
+            } else {
+                // Reset eyebrows to normal position
+                eyebrows.children[0].position.y = 0;
+                eyebrows.children[1].position.y = 0;
+            }
+        }
+
+        // Function to create ZZZ group for sleeping animation
+        function createZzzGroup() {
+            const group = new THREE.Group();
+
+            // Z character 1 (smallest)
+            const z1 = createZCharacter(0.2);
+            z1.position.set(0.1, 1.6, 0);
+            z1.userData.originalY = 1.6;
+            group.add(z1);
+
+            // Z character 2 (medium)
+            const z2 = createZCharacter(0.3);
+            z2.position.set(0.3, 1.8, 0);
+            z2.userData.originalY = 1.8;
+            group.add(z2);
+
+            // Z character 3 (largest)
+            const z3 = createZCharacter(0.4);
+            z3.position.set(0.5, 2.0, 0);
+            z3.userData.originalY = 2.0;
+            group.add(z3);
+
+            return group;
+        }
+
+        // Function to create a Z character
+        function createZCharacter(size) {
+            const group = new THREE.Group();
+
+            // Top line
+            const topPoints = [
+                new THREE.Vector3(-size / 2, size / 2, 0),
+                new THREE.Vector3(size / 2, size / 2, 0)
+            ];
+
+            const flattenedTopPoints = [];
+            topPoints.forEach(p => flattenedTopPoints.push(p.x, p.y, p.z));
+            const topGeometry = new LineGeometry(); // Use imported LineGeometry
+            topGeometry.setPositions(flattenedTopPoints);
+            const topLine = new Line2(topGeometry, lineMaterial); // Use imported Line2
+            topLine.computeLineDistances();
+            group.add(topLine);
+
+            // Diagonal line
+            const diagPoints = [
+                new THREE.Vector3(size / 2, size / 2, 0),
+                new THREE.Vector3(-size / 2, -size / 2, 0)
+            ];
+
+            const flattenedDiagPoints = [];
+            diagPoints.forEach(p => flattenedDiagPoints.push(p.x, p.y, p.z));
+            const diagGeometry = new LineGeometry(); // Use imported LineGeometry
+            diagGeometry.setPositions(flattenedDiagPoints);
+            const diagLine = new Line2(diagGeometry, lineMaterial); // Use imported Line2
+            diagLine.computeLineDistances();
+            group.add(diagLine);
+
+            // Bottom line
+            const bottomPoints = [
+                new THREE.Vector3(-size / 2, -size / 2, 0),
+                new THREE.Vector3(size / 2, -size / 2, 0)
+            ];
+
+            const flattenedBottomPoints = [];
+            bottomPoints.forEach(p => flattenedBottomPoints.push(p.x, p.y, p.z));
+            const bottomGeometry = new LineGeometry(); // Use imported LineGeometry
+            bottomGeometry.setPositions(flattenedBottomPoints);
+            const bottomLine = new Line2(bottomGeometry, lineMaterial); // Use imported Line2
+            bottomLine.computeLineDistances();
+            group.add(bottomLine);
+
+            return group;
+        }
+
+        // Function to create music notes group for whistling animation
+        function createMusicNotesGroup() {
+            const group = new THREE.Group();
+
+            // Create different music note shapes
+            const note1 = createEighthNote(0.15);
+            note1.position.set(0.1, 1.5, 0);
+            note1.userData.originalY = 1.5;
+            note1.userData.originalX = 0.1;
+            group.add(note1);
+
+            const note2 = createQuarterNote(0.2);
+            note2.position.set(0.25, 1.7, 0);
+            note2.userData.originalY = 1.7;
+            note2.userData.originalX = 0.25;
+            group.add(note2);
+
+            const note3 = createEighthNote(0.25);
+            note3.position.set(0.4, 1.9, 0);
+            note3.userData.originalY = 1.9;
+            note3.userData.originalX = 0.4;
+            group.add(note3);
+
+            return group;
+        }
+
+        // Function to create an eighth note
+        function createEighthNote(size) {
+            const group = new THREE.Group();
+
+            // Note head (oval)
+            const headSegments = 8;
+            const headPoints = [];
+
+            for (let i = 0; i <= headSegments; i++) {
+                const theta = (i / headSegments) * Math.PI * 2;
+                headPoints.push(new THREE.Vector3(
+                    Math.cos(theta) * size * 0.4,
+                    Math.sin(theta) * size * 0.6,
+                    0
+                ));
+            }
+            const flattenedHeadPoints = [];
+            headPoints.forEach(p => flattenedHeadPoints.push(p.x, p.y, p.z));
+            const headGeometry = new LineGeometry(); // Use imported LineGeometry
+            headGeometry.setPositions(flattenedHeadPoints);
+            const headLine = new Line2(headGeometry, lineMaterial); // Use imported Line2
+            headLine.computeLineDistances();
+            headLine.rotation.z = Math.PI / 4; // Tilt the note head
+            group.add(headLine);
+
+
+            // Note stem
+            const stemPoints = [
+                new THREE.Vector3(size * 0.25, size * 0.25, 0),
+                new THREE.Vector3(size * 0.25, size * 1.5, 0)
+            ];
+
+            const flattenedStemPoints = [];
+            stemPoints.forEach(p => flattenedStemPoints.push(p.x, p.y, p.z));
+            const stemGeometry = new LineGeometry(); // Use imported LineGeometry
+            stemGeometry.setPositions(flattenedStemPoints);
+            const stem = new Line2(stemGeometry, lineMaterial); // Use imported Line2
+            stem.computeLineDistances();
+            group.add(stem);
+
+            // Note flag
+            const flagPoints = [
+                new THREE.Vector3(size * 0.25, size * 1.5, 0),
+                new THREE.Vector3(size * 0.8, size * 1.2, 0)
+            ];
+
+            const flattenedFlagPoints = [];
+            flagPoints.forEach(p => flattenedFlagPoints.push(p.x, p.y, p.z));
+            const flagGeometry = new LineGeometry(); // Use imported LineGeometry
+            flagGeometry.setPositions(flattenedFlagPoints);
+            const flag = new Line2(flagGeometry, lineMaterial); // Use imported Line2
+            flag.computeLineDistances();
+            group.add(flag);
+
+            return group;
+        }
+
+        // Function to create a quarter note
+        function createQuarterNote(size) {
+            const group = new THREE.Group();
+
+            // Note head (oval)
+            const headSegments = 8;
+            const headPoints = [];
+
+            for (let i = 0; i <= headSegments; i++) {
+                const theta = (i / headSegments) * Math.PI * 2;
+                headPoints.push(new THREE.Vector3(
+                    Math.cos(theta) * size * 0.4,
+                    Math.sin(theta) * size * 0.6,
+                    0
+                ));
+            }
+
+            const flattenedHeadPoints = [];
+            headPoints.forEach(p => flattenedHeadPoints.push(p.x, p.y, p.z));
+            const headGeometry = new LineGeometry(); // Use imported LineGeometry
+            headGeometry.setPositions(flattenedHeadPoints);
+            const headLine = new Line2(headGeometry, lineMaterial); // Use imported Line2
+            headLine.computeLineDistances();
+            headLine.rotation.z = Math.PI / 4; // Tilt the note head
+            group.add(headLine);
+
+
+            // Note stem
+            const stemPoints = [
+                new THREE.Vector3(size * 0.25, size * 0.25, 0),
+                new THREE.Vector3(size * 0.25, size * 1.5, 0)
+            ];
+
+            const flattenedStemPoints = [];
+            stemPoints.forEach(p => flattenedStemPoints.push(p.x, p.y, p.z));
+            const stemGeometry = new LineGeometry(); // Use imported LineGeometry
+            stemGeometry.setPositions(flattenedStemPoints);
+            const stem = new Line2(stemGeometry, lineMaterial); // Use imported Line2
+            stem.computeLineDistances();
+            group.add(stem);
+
+            return group;
+        }
+
+        // Window resize event handler
+        function onWindowResize() {
+            const newWidth = container.clientWidth;
+            const newHeight = container.clientHeight;
+
+            // Only update if dimensions actually changed
+            if (newWidth !== lastWidth || newHeight !== lastHeight) {
+                // Update viewport manager cache (single source of truth)
+                viewport.update();
+
+                // Use cached values from viewport manager
+                windowHalfX = viewport.windowHalfX;
+                windowHalfY = viewport.windowHalfY;
+
+                // Calculate extended canvas height for animation overflow
+                const extendedHeight = Math.round(newHeight * (1 + canvasExtension));
+
+                // Update camera and renderer with extended dimensions
+                camera.aspect = newWidth / extendedHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(newWidth, extendedHeight);
+
+                // Update lineMaterial resolution on resize (multiply by pixel ratio for retina)
+                // Use base height (not extended) for consistent line thickness
+                if (lineMaterial && lineMaterial.isLineMaterial) {
+                    const pixelRatio = viewport.cappedPixelRatio;
+                    lineMaterial.resolution.set(newWidth * pixelRatio, newHeight * pixelRatio);
+                }
+
+                // Update head scale based on text size
+                updateHeadScaleBasedOnText();
+
+                // Adjust camera position for orientation
+                adjustCameraPosition();
+
+                // Adjust head position for orientation
+                adjustHeadPosition();
+
+                // Cache new dimensions
+                lastWidth = newWidth;
+                lastHeight = newHeight;
+
+                // Mark camera matrix for update
+                cameraMatrixNeedsUpdate = true;
+            }
+        }
+
+        // Call resize handler once to set initial size/scale
+        onWindowResize();
+
+        // Animation loop - uses RAF timestamp for better performance
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+
+            // Only update camera matrix when needed
+            if (cameraMatrixNeedsUpdate) {
+                camera.updateMatrixWorld(true);
+                cameraMatrixNeedsUpdate = false;
+            }
+
+            // Use RAF timestamp (more efficient than Date.now())
+            const time = timestamp * 0.001;
+
+            // Reset rotation targets each frame
+            animCurrentTargetRotationY = 0;
+            animCurrentTargetRotationX = 0;
+            let rotationSpeed = ROTATION_SPEED;
+
+            if (currentState !== STATE.SLEEPING) {
+                animCurrentTargetRotationY = mouseX * 0.05;
+                animCurrentTargetRotationX = mouseY * 0.02;
+
+                // Adjust responsiveness based on state
+                if (currentState === STATE.WHISTLING || currentState === STATE.AWED) {
+                    rotationSpeed = 0.03;
+                } else if (currentState === STATE.GIGGLING) {
+                    rotationSpeed = 0.05;
+                }
+
+                head.rotation.y += (animCurrentTargetRotationY - head.rotation.y) * rotationSpeed;
+                head.rotation.x += (animCurrentTargetRotationX - head.rotation.x) * rotationSpeed;
+            }
+
+
+            // State-specific animations
+            if (currentState === STATE.SLEEPING) {
+                // Animate ZZZs floating up (optimized loop)
+                for (let i = 0, len = zzzGroup.children.length; i < len; i++) {
+                    const z = zzzGroup.children[i];
+                    z.position.y += 0.003;
+                    if (z.position.y > 2.5) z.position.y = z.userData.originalY;
+                }
+                // Reset head rotation
+                head.rotation.y = 0;
+                head.rotation.x = 0;
+            } else if (currentState === STATE.WHISTLING) {
+                // Animate music notes (optimized loop)
+                for (let i = 0, len = musicNotesGroup.children.length; i < len; i++) {
+                    const note = musicNotesGroup.children[i];
+                    note.position.y += 0.004;
+                    note.position.x += 0.001;
+                    if (note.position.y > 2.5) {
+                        note.position.y = note.userData.originalY;
+                        note.position.x = note.userData.originalX;
+                    }
+                }
+                // Ensure head stays at correct base position during whistle state
+                head.position.y = viewport.animationBaseY;
+                head.rotation.y += Math.sin(time * 0.5) * 0.02; // Adjusted the multiplier
+            } else if (currentState === STATE.GIGGLING) {
+                // Head position is handled by the giggle interval
+                // Mouse tracking is handled above
+            } else if (currentState === STATE.AWED) {
+                head.position.y = viewport.animationBaseY;
+            } else if (currentState === STATE.NORMAL) {
+                // Mouse tracking handled above
+                // Ensure head stays at correct base position during normal state
+                head.position.y = viewport.animationBaseY;
+            }
+
+
+            // Subtle pulsing effect (apply unless sleeping)
+            if (currentState !== STATE.SLEEPING) {
+                lineMaterial.opacity = 0.7 + Math.sin(time) * 0.1;
+            } else {
+                lineMaterial.opacity = 0.8; // Keep opacity steady during sleep
+            }
+
+            // Show time!
+            renderer.render(scene, camera);
+        }
+    } catch (error) {
+        document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
+            'Digital avatar failed to render. \u{1F92F}<br>' + error.message + '<br><br>Reload and prepare to be dazzled.</div>';
+    }
+}
