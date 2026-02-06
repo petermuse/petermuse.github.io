@@ -48,6 +48,36 @@ const RESPONSIVE_CONFIG = {
 };
 
 // ============================================
+// ANIMATION CONSTANTS - Named magic numbers
+// ============================================
+const ANIMATION = {
+    MOUSE_SENSITIVITY_X: 0.05,
+    MOUSE_SENSITIVITY_Y: 0.02,
+    ROTATION_SPEED_NORMAL: 0.1,
+    ROTATION_SPEED_WHISTLING: 0.03,
+    ROTATION_SPEED_GIGGLING: 0.05,
+    GIGGLE_DURATION_MS: 2000,
+    GIGGLE_FREQUENCY: 0.02,
+    GIGGLE_AMPLITUDE: 0.03,
+    INACTIVITY_THRESHOLD_MS: 10000,
+    ZZZ_FLOAT_SPEED: 0.003,
+    ZZZ_RESET_Y: 2.5,
+    NOTE_FLOAT_SPEED_Y: 0.004,
+    NOTE_FLOAT_SPEED_X: 0.001,
+    NOTE_RESET_Y: 2.5,
+    WHISTLE_SWAY_SPEED: 0.5,
+    WHISTLE_SWAY_AMOUNT: 0.02,
+    PULSE_BASE_OPACITY: 0.7,
+    PULSE_AMPLITUDE: 0.1,
+    SLEEP_OPACITY: 0.8,
+    LINE_WIDTH_BASE: 1.5,
+    SLEEP_HOURS_START: 22,
+    SLEEP_HOURS_END: 6,
+    STATE_CHECK_INTERVAL_MS: 60000,
+    INACTIVITY_CHECK_INTERVAL_MS: 1000,
+};
+
+// ============================================
 // VIEWPORT MANAGER - Centralized Device Detection
 // ============================================
 class ViewportManager {
@@ -269,7 +299,7 @@ function initThreeJS() {
         // Standardized line material function with device-independent settings
         function createLineMaterial() {
             // Apply retina adjustment for line width (lines appear thinner on retina)
-            const baseLineWidth = 1.5;
+            const baseLineWidth = ANIMATION.LINE_WIDTH_BASE;
             const adjustedLineWidth = baseLineWidth * viewport.retinaLineWidthMultiplier;
 
             const material = new LineMaterial({ // Use imported LineMaterial
@@ -313,7 +343,7 @@ function initThreeJS() {
         let currentState = null;
         let lastStateChange = Date.now();
         let lastActivity = Date.now();
-        const INACTIVITY_THRESHOLD = 10000; // 10 seconds
+        const INACTIVITY_THRESHOLD = ANIMATION.INACTIVITY_THRESHOLD_MS; // 10 seconds
         let autoStateEnabled = true; // Toggle for auto state changes
 
         // Mouse tracking (only used when not in sleeping hours)
@@ -432,7 +462,7 @@ function initThreeJS() {
         // Animation loop variables (defined outside animate() to reduce GC pressure)
         let animCurrentTargetRotationY = 0;
         let animCurrentTargetRotationX = 0;
-        const ROTATION_SPEED = 0.1;
+        const ROTATION_SPEED = ANIMATION.ROTATION_SPEED_NORMAL;
 
         // Cache container dimensions for resize optimization
         let lastWidth = container.clientWidth;
@@ -552,11 +582,11 @@ function initThreeJS() {
                     }
 
                     // Small random head movements for giggling effect
-                    const giggleOffset = Math.sin((Date.now() - giggleStartTime) * 0.02) * 0.03;
+                    const giggleOffset = Math.sin((Date.now() - giggleStartTime) * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE;
                     head.position.y = viewport.animationBaseY + giggleOffset;
 
                     // Check if we should stop giggling based on time
-                    if (Date.now() - giggleStartTime > 2000) { // 2 seconds of giggling
+                    if (Date.now() - giggleStartTime > ANIMATION.GIGGLE_DURATION_MS) { // 2 seconds of giggling
                         clearInterval(giggleIntervalId);
                         giggleIntervalId = null;
                         adjustHeadPosition(); // Reset head position
@@ -586,6 +616,42 @@ function initThreeJS() {
                 handleHeadInteraction(touch.clientX, touch.clientY, event.target);
             }
         }, { passive: false });
+
+        // Keyboard support for head interaction (accessibility)
+        container.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                // Trigger giggle from center of head (simulates clicking the head center)
+                if (!isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
+                    lastActivity = Date.now();
+                    if (giggleIntervalId !== null) {
+                        clearInterval(giggleIntervalId);
+                        giggleIntervalId = null;
+                        adjustHeadPosition();
+                    }
+                    switchToState(STATE.GIGGLING);
+                    let giggleStartTime = Date.now();
+                    giggleIntervalId = setInterval(() => {
+                        if (currentState !== STATE.GIGGLING) {
+                            clearInterval(giggleIntervalId);
+                            giggleIntervalId = null;
+                            adjustHeadPosition();
+                            return;
+                        }
+                        const giggleOffset = Math.sin((Date.now() - giggleStartTime) * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE;
+                        head.position.y = viewport.animationBaseY + giggleOffset;
+                        if (Date.now() - giggleStartTime > ANIMATION.GIGGLE_DURATION_MS) {
+                            clearInterval(giggleIntervalId);
+                            giggleIntervalId = null;
+                            adjustHeadPosition();
+                            if (currentState === STATE.GIGGLING) {
+                                switchToState(STATE.NORMAL);
+                            }
+                        }
+                    }, 16);
+                }
+            }
+        });
 
         // --- LinkedIn Hover Event Listeners ---
         const linkedinContainer = document.querySelector('.linkedin-container');
@@ -681,8 +747,8 @@ function initThreeJS() {
 
 
         // Store interval IDs for cleanup
-        const timeCheckInterval = setInterval(updateStateBasedOnTime, 60000);
-        const inactivityCheckInterval = setInterval(checkInactivity, 1000);
+        const timeCheckInterval = setInterval(updateStateBasedOnTime, ANIMATION.STATE_CHECK_INTERVAL_MS);
+        const inactivityCheckInterval = setInterval(checkInactivity, ANIMATION.INACTIVITY_CHECK_INTERVAL_MS);
 
         // Cleanup function to prevent memory leaks
         window.addEventListener('beforeunload', function () {
@@ -708,7 +774,7 @@ function initThreeJS() {
             const hours = californiaNow.getHours();
 
             // Sleep time is 10pm (22) to 6am (6) - we respect work-life balance
-            return hours >= 22 || hours < 6;
+            return hours >= ANIMATION.SLEEP_HOURS_START || hours < ANIMATION.SLEEP_HOURS_END;
         }
 
         function updateStateBasedOnTime() {
@@ -1343,14 +1409,14 @@ function initThreeJS() {
             let rotationSpeed = ROTATION_SPEED;
 
             if (currentState !== STATE.SLEEPING) {
-                animCurrentTargetRotationY = mouseX * 0.05;
-                animCurrentTargetRotationX = mouseY * 0.02;
+                animCurrentTargetRotationY = mouseX * ANIMATION.MOUSE_SENSITIVITY_X;
+                animCurrentTargetRotationX = mouseY * ANIMATION.MOUSE_SENSITIVITY_Y;
 
                 // Adjust responsiveness based on state
                 if (currentState === STATE.WHISTLING || currentState === STATE.AWED) {
-                    rotationSpeed = 0.03;
+                    rotationSpeed = ANIMATION.ROTATION_SPEED_WHISTLING;
                 } else if (currentState === STATE.GIGGLING) {
-                    rotationSpeed = 0.05;
+                    rotationSpeed = ANIMATION.ROTATION_SPEED_GIGGLING;
                 }
 
                 head.rotation.y += (animCurrentTargetRotationY - head.rotation.y) * rotationSpeed;
@@ -1363,8 +1429,8 @@ function initThreeJS() {
                 // Animate ZZZs floating up (optimized loop)
                 for (let i = 0, len = zzzGroup.children.length; i < len; i++) {
                     const z = zzzGroup.children[i];
-                    z.position.y += 0.003;
-                    if (z.position.y > 2.5) z.position.y = z.userData.originalY;
+                    z.position.y += ANIMATION.ZZZ_FLOAT_SPEED;
+                    if (z.position.y > ANIMATION.ZZZ_RESET_Y) z.position.y = z.userData.originalY;
                 }
                 // Reset head rotation
                 head.rotation.y = 0;
@@ -1373,16 +1439,16 @@ function initThreeJS() {
                 // Animate music notes (optimized loop)
                 for (let i = 0, len = musicNotesGroup.children.length; i < len; i++) {
                     const note = musicNotesGroup.children[i];
-                    note.position.y += 0.004;
-                    note.position.x += 0.001;
-                    if (note.position.y > 2.5) {
+                    note.position.y += ANIMATION.NOTE_FLOAT_SPEED_Y;
+                    note.position.x += ANIMATION.NOTE_FLOAT_SPEED_X;
+                    if (note.position.y > ANIMATION.NOTE_RESET_Y) {
                         note.position.y = note.userData.originalY;
                         note.position.x = note.userData.originalX;
                     }
                 }
                 // Ensure head stays at correct base position during whistle state
                 head.position.y = viewport.animationBaseY;
-                head.rotation.y += Math.sin(time * 0.5) * 0.02; // Adjusted the multiplier
+                head.rotation.y += Math.sin(time * ANIMATION.WHISTLE_SWAY_SPEED) * ANIMATION.WHISTLE_SWAY_AMOUNT; // Adjusted the multiplier
             } else if (currentState === STATE.GIGGLING) {
                 // Head position is handled by the giggle interval
                 // Mouse tracking is handled above
@@ -1397,9 +1463,9 @@ function initThreeJS() {
 
             // Subtle pulsing effect (apply unless sleeping)
             if (currentState !== STATE.SLEEPING) {
-                lineMaterial.opacity = 0.7 + Math.sin(time) * 0.1;
+                lineMaterial.opacity = ANIMATION.PULSE_BASE_OPACITY + Math.sin(time) * ANIMATION.PULSE_AMPLITUDE;
             } else {
-                lineMaterial.opacity = 0.8; // Keep opacity steady during sleep
+                lineMaterial.opacity = ANIMATION.SLEEP_OPACITY; // Keep opacity steady during sleep
             }
 
             // Show time!
