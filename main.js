@@ -758,7 +758,7 @@ function initThreeJS() {
             // If currently giggling, stop the RAF-driven animation
             if (currentState === STATE.GIGGLING) {
                 isGiggling = false;
-                adjustHeadPosition();
+                head.position.y = viewport.animationBaseY;
             }
 
             // Fresh start with each mood swing
@@ -1352,12 +1352,15 @@ function initThreeJS() {
             } else if (currentState === STATE.GIGGLING) {
                 if (isGiggling) {
                     const elapsed = Date.now() - giggleStartTime;
-                    const giggleOffset = Math.sin(elapsed * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE;
+                    // Ease-out envelope: amplitude decays from 1 to 0 over the duration
+                    const progress = Math.min(elapsed / ANIMATION.GIGGLE_DURATION_MS, 1);
+                    const envelope = 1 - progress * progress; // quadratic ease-out
+                    const giggleOffset = Math.sin(elapsed * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE * envelope;
                     head.position.y = viewport.animationBaseY + giggleOffset;
 
-                    if (elapsed > ANIMATION.GIGGLE_DURATION_MS) {
+                    if (progress >= 1) {
                         isGiggling = false;
-                        adjustHeadPosition();
+                        head.position.y = viewport.animationBaseY;
                         if (currentState === STATE.GIGGLING) {
                             switchToState(STATE.NORMAL);
                         }
