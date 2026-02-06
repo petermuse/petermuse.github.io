@@ -266,7 +266,6 @@ body {
 }
 
 .linkedin-container {
-    position: static;
     opacity: 0;
     animation: fadeInLinkedIn 1s ease-in-out forwards;
     animation-delay: 1.5s;
