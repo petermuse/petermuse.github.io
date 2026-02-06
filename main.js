@@ -453,8 +453,9 @@ function initThreeJS() {
         // Set initial head scale based on current text size
         updateHeadScaleBasedOnText();
 
-        // Giggle timer control
-        let giggleIntervalId = null;
+        // Giggle animation state (RAF-driven instead of setInterval)
+        let giggleStartTime = 0;
+        let isGiggling = false;
 
         // Track if camera needs matrix update
         let cameraMatrixNeedsUpdate = false;
@@ -555,48 +556,11 @@ function initThreeJS() {
             raycaster.camera = camera; // Provide camera reference for LineSegments2 raycasting
             const intersects = raycaster.intersectObject(headRaycastTarget, false); // Intersect with the sphere, not recursive
 
-            // Only respond to interactions during waking hours and if not already giggling, sleeping, or awed, AND if the interaction intersects the head
             if (intersects.length > 0 && !isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
-                lastActivity = Date.now(); // Count this as activity
-
-                // Clear any existing giggle interval before starting a new one
-                if (giggleIntervalId !== null) {
-                    clearInterval(giggleIntervalId);
-                    giggleIntervalId = null;
-                    adjustHeadPosition(); // Reset head position immediately
-                }
-
+                lastActivity = Date.now();
                 switchToState(STATE.GIGGLING);
-
-                // Make the head do a little bounce while giggling
-                let giggleStartTime = Date.now();
-
-                // Create a small giggle animation interval
-                giggleIntervalId = setInterval(() => {
-                    // Check if we are still supposed to be giggling
-                    if (currentState !== STATE.GIGGLING) {
-                        clearInterval(giggleIntervalId);
-                        giggleIntervalId = null;
-                        adjustHeadPosition(); // Reset head position
-                        return; // Exit interval function
-                    }
-
-                    // Small random head movements for giggling effect
-                    const giggleOffset = Math.sin((Date.now() - giggleStartTime) * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE;
-                    head.position.y = viewport.animationBaseY + giggleOffset;
-
-                    // Check if we should stop giggling based on time
-                    if (Date.now() - giggleStartTime > ANIMATION.GIGGLE_DURATION_MS) { // 2 seconds of giggling
-                        clearInterval(giggleIntervalId);
-                        giggleIntervalId = null;
-                        adjustHeadPosition(); // Reset head position
-
-                        // Switch back only if still in GIGGLING state
-                        if (currentState === STATE.GIGGLING) {
-                            switchToState(STATE.NORMAL);
-                        }
-                    }
-                }, 16); // ~60fps
+                giggleStartTime = Date.now();
+                isGiggling = true;
             }
         }
 
@@ -621,34 +585,11 @@ function initThreeJS() {
         container.addEventListener('keydown', function (event) {
             if (event.key === 'Enter' || event.key === ' ') {
                 event.preventDefault();
-                // Trigger giggle from center of head (simulates clicking the head center)
                 if (!isCaliforniaSleepTime() && currentState !== STATE.SLEEPING && currentState !== STATE.GIGGLING && currentState !== STATE.AWED) {
                     lastActivity = Date.now();
-                    if (giggleIntervalId !== null) {
-                        clearInterval(giggleIntervalId);
-                        giggleIntervalId = null;
-                        adjustHeadPosition();
-                    }
                     switchToState(STATE.GIGGLING);
-                    let giggleStartTime = Date.now();
-                    giggleIntervalId = setInterval(() => {
-                        if (currentState !== STATE.GIGGLING) {
-                            clearInterval(giggleIntervalId);
-                            giggleIntervalId = null;
-                            adjustHeadPosition();
-                            return;
-                        }
-                        const giggleOffset = Math.sin((Date.now() - giggleStartTime) * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE;
-                        head.position.y = viewport.animationBaseY + giggleOffset;
-                        if (Date.now() - giggleStartTime > ANIMATION.GIGGLE_DURATION_MS) {
-                            clearInterval(giggleIntervalId);
-                            giggleIntervalId = null;
-                            adjustHeadPosition();
-                            if (currentState === STATE.GIGGLING) {
-                                switchToState(STATE.NORMAL);
-                            }
-                        }
-                    }, 16);
+                    giggleStartTime = Date.now();
+                    isGiggling = true;
                 }
             }
         });
@@ -752,9 +693,6 @@ function initThreeJS() {
 
         // Cleanup function to prevent memory leaks
         window.addEventListener('beforeunload', function () {
-            if (giggleIntervalId !== null) {
-                clearInterval(giggleIntervalId);
-            }
             clearInterval(timeCheckInterval);
             clearInterval(inactivityCheckInterval);
         });
@@ -817,11 +755,10 @@ function initThreeJS() {
             // Prevent redundant state changes
             if (currentState === newState) return;
 
-            // If currently giggling, clear the interval
-            if (currentState === STATE.GIGGLING && giggleIntervalId !== null) {
-                clearInterval(giggleIntervalId);
-                giggleIntervalId = null;
-                adjustHeadPosition(); // Reset head position
+            // If currently giggling, stop the RAF-driven animation
+            if (currentState === STATE.GIGGLING) {
+                isGiggling = false;
+                adjustHeadPosition();
             }
 
             // Fresh start with each mood swing
@@ -1239,14 +1176,13 @@ function initThreeJS() {
             return group;
         }
 
-        // Function to create an eighth note
-        function createEighthNote(size) {
+        // Shared note base: creates note head (oval) + stem
+        function createNoteBase(size) {
             const group = new THREE.Group();
 
             // Note head (oval)
             const headSegments = 8;
             const headPoints = [];
-
             for (let i = 0; i <= headSegments; i++) {
                 const theta = (i / headSegments) * Math.PI * 2;
                 headPoints.push(new THREE.Vector3(
@@ -1257,87 +1193,51 @@ function initThreeJS() {
             }
             const flattenedHeadPoints = [];
             headPoints.forEach(p => flattenedHeadPoints.push(p.x, p.y, p.z));
-            const headGeometry = new LineGeometry(); // Use imported LineGeometry
+            const headGeometry = new LineGeometry();
             headGeometry.setPositions(flattenedHeadPoints);
-            const headLine = new Line2(headGeometry, lineMaterial); // Use imported Line2
+            const headLine = new Line2(headGeometry, lineMaterial);
             headLine.computeLineDistances();
-            headLine.rotation.z = Math.PI / 4; // Tilt the note head
+            headLine.rotation.z = Math.PI / 4;
             group.add(headLine);
-
 
             // Note stem
             const stemPoints = [
                 new THREE.Vector3(size * 0.25, size * 0.25, 0),
                 new THREE.Vector3(size * 0.25, size * 1.5, 0)
             ];
-
             const flattenedStemPoints = [];
             stemPoints.forEach(p => flattenedStemPoints.push(p.x, p.y, p.z));
-            const stemGeometry = new LineGeometry(); // Use imported LineGeometry
+            const stemGeometry = new LineGeometry();
             stemGeometry.setPositions(flattenedStemPoints);
-            const stem = new Line2(stemGeometry, lineMaterial); // Use imported Line2
+            const stem = new Line2(stemGeometry, lineMaterial);
             stem.computeLineDistances();
             group.add(stem);
 
-            // Note flag
+            return group;
+        }
+
+        // Eighth note = base + flag
+        function createEighthNote(size) {
+            const group = createNoteBase(size);
+
             const flagPoints = [
                 new THREE.Vector3(size * 0.25, size * 1.5, 0),
                 new THREE.Vector3(size * 0.8, size * 1.2, 0)
             ];
-
             const flattenedFlagPoints = [];
             flagPoints.forEach(p => flattenedFlagPoints.push(p.x, p.y, p.z));
-            const flagGeometry = new LineGeometry(); // Use imported LineGeometry
+            const flagGeometry = new LineGeometry();
             flagGeometry.setPositions(flattenedFlagPoints);
-            const flag = new Line2(flagGeometry, lineMaterial); // Use imported Line2
+            const flag = new Line2(flagGeometry, lineMaterial);
             flag.computeLineDistances();
             group.add(flag);
 
             return group;
         }
 
-        // Function to create a quarter note
+        // Quarter note = just the base (head + stem, no flag)
         function createQuarterNote(size) {
-            const group = new THREE.Group();
-
-            // Note head (oval)
-            const headSegments = 8;
-            const headPoints = [];
-
-            for (let i = 0; i <= headSegments; i++) {
-                const theta = (i / headSegments) * Math.PI * 2;
-                headPoints.push(new THREE.Vector3(
-                    Math.cos(theta) * size * 0.4,
-                    Math.sin(theta) * size * 0.6,
-                    0
-                ));
-            }
-
-            const flattenedHeadPoints = [];
-            headPoints.forEach(p => flattenedHeadPoints.push(p.x, p.y, p.z));
-            const headGeometry = new LineGeometry(); // Use imported LineGeometry
-            headGeometry.setPositions(flattenedHeadPoints);
-            const headLine = new Line2(headGeometry, lineMaterial); // Use imported Line2
-            headLine.computeLineDistances();
-            headLine.rotation.z = Math.PI / 4; // Tilt the note head
-            group.add(headLine);
-
-
-            // Note stem
-            const stemPoints = [
-                new THREE.Vector3(size * 0.25, size * 0.25, 0),
-                new THREE.Vector3(size * 0.25, size * 1.5, 0)
-            ];
-
-            const flattenedStemPoints = [];
-            stemPoints.forEach(p => flattenedStemPoints.push(p.x, p.y, p.z));
-            const stemGeometry = new LineGeometry(); // Use imported LineGeometry
-            stemGeometry.setPositions(flattenedStemPoints);
-            const stem = new Line2(stemGeometry, lineMaterial); // Use imported Line2
-            stem.computeLineDistances();
-            group.add(stem);
-
-            return group;
+            return createNoteBase(size);
         }
 
         // Window resize event handler
@@ -1450,8 +1350,19 @@ function initThreeJS() {
                 head.position.y = viewport.animationBaseY;
                 head.rotation.y += Math.sin(time * ANIMATION.WHISTLE_SWAY_SPEED) * ANIMATION.WHISTLE_SWAY_AMOUNT; // Adjusted the multiplier
             } else if (currentState === STATE.GIGGLING) {
-                // Head position is handled by the giggle interval
-                // Mouse tracking is handled above
+                if (isGiggling) {
+                    const elapsed = Date.now() - giggleStartTime;
+                    const giggleOffset = Math.sin(elapsed * ANIMATION.GIGGLE_FREQUENCY) * ANIMATION.GIGGLE_AMPLITUDE;
+                    head.position.y = viewport.animationBaseY + giggleOffset;
+
+                    if (elapsed > ANIMATION.GIGGLE_DURATION_MS) {
+                        isGiggling = false;
+                        adjustHeadPosition();
+                        if (currentState === STATE.GIGGLING) {
+                            switchToState(STATE.NORMAL);
+                        }
+                    }
+                }
             } else if (currentState === STATE.AWED) {
                 head.position.y = viewport.animationBaseY;
             } else if (currentState === STATE.NORMAL) {
