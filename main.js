@@ -270,7 +270,7 @@ function initThreeJS() {
 
         // Function to adjust head position for different orientations
         function adjustHeadPosition() {
-            head.position.y = viewport.headPositionY;
+            head.position.y = viewport.animationBaseY;
         }
 
         // WebGL renderer with antialiasing and transparency
