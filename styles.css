@@ -1,10 +1,10 @@
-/* Self-hosted EB Garamond (400, 500) */
+/* Self-hosted EB Garamond (400, 500) — subsetted WOFF2 */
 @font-face {
     font-family: 'EB Garamond';
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url('assets/fonts/ebgaramond/EBGaramond-400.ttf') format('truetype');
+    src: url('assets/fonts/ebgaramond/EBGaramond-400.woff2') format('woff2');
 }
 
 @font-face {
@@ -12,7 +12,7 @@
     font-style: normal;
     font-weight: 500;
     font-display: swap;
-    src: url('assets/fonts/ebgaramond/EBGaramond-500.ttf') format('truetype');
+    src: url('assets/fonts/ebgaramond/EBGaramond-500.woff2') format('woff2');
 }
 
 *,
@@ -69,7 +69,7 @@ body {
     width: 100%;
 }
 
-/* State toggle controls for testing - set to display: none for publishing */
+/* Debug state-toggle (injected by JS only on Konami trigger) */
 #state-toggle {
     position: absolute;
     top: 10px;
@@ -81,7 +81,7 @@ body {
     color: var(--head-color);
     font-family: monospace;
     z-index: 10;
-    display: none;
+    display: flex;
     flex-direction: column;
     gap: 5px;
 }
@@ -111,6 +111,19 @@ body {
     background: var(--head-color);
     color: black;
     font-weight: bold;
+}
+
+/* Visually hidden but available to screen readers and crawlers */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* Head canvas container - extends to top for animation overflow */

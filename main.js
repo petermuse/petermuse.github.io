@@ -1,9 +1,6 @@
 // Head animation created with Claude AI (claude.ai)
-// Wait for the DOM to be fully loaded
-import * as THREE from './assets/vendor/three-local@0.128.0/build/three.module.js';
-import { Line2 } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/Line2.js';
-import { LineMaterial } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/LineMaterial.js';
-import { LineGeometry } from './assets/vendor/three-local@0.128.0/examples/jsm/lines/LineGeometry.js';
+// Three.js modules are dynamically imported after first paint (see DOMContentLoaded handler).
+let THREE, Line2, LineMaterial, LineGeometry;
 
 // ============================================
 // RESPONSIVE CONFIGURATION - Single Source of Truth
@@ -189,13 +186,12 @@ const throttle = (fn, delay = 16) => {
 
 let headRaycastTarget; // Declare here for wider scope
 
-// Cache elements - performance matters
-let stateToggleElement;
-let cachedButtons = [];
-let activeButton = null;
+// Debug state-toggle panel (injected into DOM only when Konami code fires).
+// Set by initThreeJS once Three.js state vars are in scope.
+let triggerStateTogglePanel = null;
 
 // Konami code detection
-let konamiCode = [
+const konamiCode = [
     'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
     'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
     'KeyB', 'KeyA'
@@ -206,20 +202,36 @@ document.addEventListener('keydown', function (e) {
     if (e.code === konamiCode[konamiIndex]) {
         konamiIndex++;
         if (konamiIndex === konamiCode.length) {
-            // Konami code completed - toggle state controls
-            if (!stateToggleElement) stateToggleElement = document.getElementById('state-toggle');
-            const isHidden = window.getComputedStyle(stateToggleElement).display === 'none';
-            stateToggleElement.style.display = isHidden ? 'flex' : 'none';
-            konamiIndex = 0; // Reset for next time
+            if (triggerStateTogglePanel) triggerStateTogglePanel();
+            konamiIndex = 0;
         }
     } else {
-        konamiIndex = 0; // Reset if wrong key
+        konamiIndex = 0;
     }
 });
 
 window.addEventListener('DOMContentLoaded', function () {
-    // Initialize Three.js immediately after DOM is ready
-    setTimeout(initThreeJS, 0);
+    // Defer Three.js module loads until after first paint so the name/LinkedIn
+    // render without waiting on ~1.1MB of JS parse+execute.
+    const schedule = window.requestIdleCallback || function (cb) { return setTimeout(cb, 1); };
+    schedule(async function () {
+        try {
+            const base = './assets/vendor/three-local@0.128.0';
+            const [threeMod, line2Mod, lineMatMod, lineGeomMod] = await Promise.all([
+                import(`${base}/build/three.module.js`),
+                import(`${base}/examples/jsm/lines/Line2.js`),
+                import(`${base}/examples/jsm/lines/LineMaterial.js`),
+                import(`${base}/examples/jsm/lines/LineGeometry.js`)
+            ]);
+            THREE = threeMod;
+            Line2 = line2Mod.Line2;
+            LineMaterial = lineMatMod.LineMaterial;
+            LineGeometry = lineGeomMod.LineGeometry;
+            initThreeJS();
+        } catch (err) {
+            document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>Failed to load Three.js modules. Please reload the page.</div>';
+        }
+    });
 });
 
 function initThreeJS() {
@@ -622,51 +634,61 @@ function initThreeJS() {
                 'LinkedIn container not found. Please reload the page.</div>';
         }
 
-        // Cache buttons for performance
-        if (!stateToggleElement) stateToggleElement = document.getElementById('state-toggle');
-        cachedButtons = {
-            normal: document.getElementById('normal-btn'),
-            whistling: document.getElementById('whistling-btn'),
-            sleeping: document.getElementById('sleeping-btn'),
-            auto: document.getElementById('auto-btn')
-        };
+        // Track which button should be active. Panel is injected lazily on Konami;
+        // updateActiveButton records the intended state and syncs DOM only if present.
+        let stateTogglePanel = null;
+        let activeButtonId = 'normal-btn';
 
-        // Setup event listeners for state toggle buttons
-        cachedButtons.normal.addEventListener('click', function () {
-            autoStateEnabled = false;
-            switchToState(STATE.NORMAL);
-            updateActiveButton('normal-btn');
-        });
-
-        cachedButtons.whistling.addEventListener('click', function () {
-            autoStateEnabled = false;
-            switchToState(STATE.WHISTLING);
-            updateActiveButton('whistling-btn');
-        });
-
-        cachedButtons.sleeping.addEventListener('click', function () {
-            autoStateEnabled = false;
-            switchToState(STATE.SLEEPING);
-            updateActiveButton('sleeping-btn');
-        });
-
-        cachedButtons.auto.addEventListener('click', function () {
-            autoStateEnabled = true;
-            updateStateBasedOnTime(); // Re-evaluate current state
-            updateActiveButton('auto-btn');
-        });
-
-        // Function to update which button is active - UX matters, even for test controls
-        function updateActiveButton(activeButtonId) {
-            // Remove active class from current active button
-            if (activeButton) {
-                activeButton.classList.remove('active');
-            }
-
-            // Add active class to the clicked button
-            activeButton = document.getElementById(activeButtonId);
-            activeButton.classList.add('active');
+        function updateActiveButton(buttonId) {
+            activeButtonId = buttonId;
+            if (!stateTogglePanel) return;
+            const active = stateTogglePanel.querySelector('button.active');
+            if (active) active.classList.remove('active');
+            const next = stateTogglePanel.querySelector('#' + buttonId);
+            if (next) next.classList.add('active');
         }
+
+        triggerStateTogglePanel = function () {
+            if (stateTogglePanel) {
+                const isHidden = window.getComputedStyle(stateTogglePanel).display === 'none';
+                stateTogglePanel.style.display = isHidden ? 'flex' : 'none';
+                return;
+            }
+            const panel = document.createElement('div');
+            panel.id = 'state-toggle';
+            panel.setAttribute('data-nosnippet', '');
+            panel.innerHTML =
+                '<h3>Head States</h3>' +
+                '<button id="normal-btn" type="button">Normal</button>' +
+                '<button id="whistling-btn" type="button">Whistling</button>' +
+                '<button id="sleeping-btn" type="button">Sleeping</button>' +
+                '<button id="auto-btn" type="button">Auto</button>';
+            document.body.appendChild(panel);
+            stateTogglePanel = panel;
+
+            panel.querySelector('#normal-btn').addEventListener('click', function () {
+                autoStateEnabled = false;
+                switchToState(STATE.NORMAL);
+                updateActiveButton('normal-btn');
+            });
+            panel.querySelector('#whistling-btn').addEventListener('click', function () {
+                autoStateEnabled = false;
+                switchToState(STATE.WHISTLING);
+                updateActiveButton('whistling-btn');
+            });
+            panel.querySelector('#sleeping-btn').addEventListener('click', function () {
+                autoStateEnabled = false;
+                switchToState(STATE.SLEEPING);
+                updateActiveButton('sleeping-btn');
+            });
+            panel.querySelector('#auto-btn').addEventListener('click', function () {
+                autoStateEnabled = true;
+                updateStateBasedOnTime();
+                updateActiveButton('auto-btn');
+            });
+
+            updateActiveButton(activeButtonId);
+        };
 
         window.addEventListener('resize', onWindowResize);
 
@@ -674,16 +696,10 @@ function initThreeJS() {
         adjustHeadPosition(); // Ensure head is positioned correctly on load
         adjustCameraPosition(); // Ensure camera is positioned correctly on load
         updateStateBasedOnTime();
-        if (autoStateEnabled) { // Set initial active button if auto is enabled
+        if (autoStateEnabled) {
             updateActiveButton('auto-btn');
         } else {
-            // Find the button corresponding to the initial state and set it active
-            const initialStateButtonId = currentState + '-btn';
-            if (document.getElementById(initialStateButtonId)) {
-                updateActiveButton(initialStateButtonId);
-            } else {
-                updateActiveButton('normal-btn'); // Default if state button doesn't exist
-            }
+            updateActiveButton((currentState || 'normal') + '-btn');
         }
 
 

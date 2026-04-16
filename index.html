@@ -4,20 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <meta name="description" content="My little spot on the web.">
-    <meta name="keywords"
-        content="Peter Muse, creative technologist, long beach, digital media, ad operations, gallery media group, purewow, nickelodeon, viacom, thrillist, kidoodle.tv, supplyframe, homepage, web developer, interactive design">
+    <meta name="description" content="The personal homepage of Peter Muse. My little spot on the web.">
     <meta name="theme-color" content="#000000">
     <meta name="robots" content="index, follow">
     <meta name="author" content="Peter Muse">
     <meta property="og:title" content="Peter Muse's Personal Homepage">
-    <meta property="og:description" content="My little spot on the web.">
-    <meta property="og:type" content="website">
+    <meta property="og:description" content="The personal homepage of Peter Muse. My little spot on the web.">
+    <meta property="og:type" content="profile">
+    <meta property="profile:first_name" content="Peter">
+    <meta property="profile:last_name" content="Muse">
     <meta property="og:url" content="https://www.petermuse.com">
     <meta property="og:site_name" content="Peter Muse">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Peter Muse's Personal Homepage">
-    <meta name="twitter:description" content="My little spot on the web.">
+    <meta name="twitter:description" content="The personal homepage of Peter Muse. My little spot on the web.">
     <meta name="twitter:image" content="https://www.petermuse.com/assets/og-image.png">
     <meta property="og:image" content="https://www.petermuse.com/assets/og-image.png">
     <meta property="og:image:width" content="1200">
@@ -25,14 +25,15 @@
     <meta property="og:image:alt" content="Peter Muse's Personal Homepage">
     <link rel="preconnect" href="https://www.googletagmanager.com">
     <link rel="dns-prefetch" href="https://www.googletagmanager.com">
-    <link rel="apple-touch-icon" href="data:,">
     <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='35' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%231DACD6'%3Ep%3C/text%3E%3Ctext x='65' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%23FF8833'%3Em%3C/text%3E%3C/svg%3E">
+    <link rel="apple-touch-icon"
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23000'/%3E%3Ctext x='35' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%231DACD6'%3Ep%3C/text%3E%3Ctext x='65' y='62' font-family='Arial, sans-serif' font-size='60' font-weight='bold' text-anchor='middle' fill='%23FF8833'%3Em%3C/text%3E%3C/svg%3E">
     <title>Peter Muse's Personal Homepage</title>
     <link rel="canonical" href="https://www.petermuse.com" />
-    <!-- Self-hosted EB Garamond -->
-    <link rel="preload" href="assets/fonts/ebgaramond/EBGaramond-400.ttf" as="font" type="font/ttf" crossorigin>
-    <link rel="preload" href="assets/fonts/ebgaramond/EBGaramond-500.ttf" as="font" type="font/ttf" crossorigin>
+    <!-- Self-hosted EB Garamond (subsetted WOFF2) -->
+    <link rel="preload" href="assets/fonts/ebgaramond/EBGaramond-400.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="assets/fonts/ebgaramond/EBGaramond-500.woff2" as="font" type="font/woff2" crossorigin>
 
     <!-- Vendored local modules: remove external CDN dependency -->
     <link rel="modulepreload" href="assets/vendor/three-local@0.128.0/build/three.module.js" as="script" crossorigin>
@@ -52,7 +53,7 @@
       "givenName": "Peter",
       "familyName": "Muse",
       "url": "https://www.petermuse.com",
-      "description": "Peter Muse's Personal Homepage",
+      "description": "The personal homepage of Peter Muse. My little spot on the web.",
       "image": "https://www.petermuse.com/assets/og-image.png",
       "jobTitle": "Ad Operations",
       "address": {
@@ -87,33 +88,9 @@
 <body>
     <div id="head-container" role="img" aria-label="Interactive 3D wireframe head animation" tabindex="0"></div>
 
-    <div id="state-toggle" data-nosnippet>
-        <h3>Head States</h3>
-        <button id="normal-btn" class="active">Normal</button>
-        <button id="whistling-btn">Whistling</button>
-        <button id="sleeping-btn">Sleeping</button>
-        <button id="auto-btn">Auto</button>
-    </div>
-
-
-
     <main class="main-content">
         <header class="name-container" role="banner">
-            <h1 class="name" aria-label="Peter Muse">
-                <div class="first-name">
-                    <span class="letter letter-p">P</span>
-                    <span class="letter letter-e1">e</span>
-                    <span class="letter letter-t">t</span>
-                    <span class="letter letter-e2">e</span>
-                    <span class="letter letter-r">r</span>
-                </div>
-                <div class="last-name">
-                    <span class="letter letter-m">M</span>
-                    <span class="letter letter-u">u</span>
-                    <span class="letter letter-s">s</span>
-                    <span class="letter letter-e3">e</span>
-                </div>
-            </h1>
+            <h1 class="name"><span class="visually-hidden">Peter Muse</span><span class="first-name" aria-hidden="true"><span class="letter letter-p">P</span><span class="letter letter-e1">e</span><span class="letter letter-t">t</span><span class="letter letter-e2">e</span><span class="letter letter-r">r</span></span><span class="last-name" aria-hidden="true"><span class="letter letter-m">M</span><span class="letter letter-u">u</span><span class="letter letter-s">s</span><span class="letter letter-e3">e</span></span></h1>
         </header>
 
         <footer class="linkedin-container" role="contentinfo">
