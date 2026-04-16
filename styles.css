@@ -39,7 +39,7 @@ html {
     --gold: #FCD667;
     --pink: #FF9999;
     --head-color: #00ff00;
-    --linkedin-glow-gradient: linear-gradient(90deg, var(--blue), var(--red), var(--green), var(--yellow), var(--purple), var(--orange), var(--mint), var(--gold), var(--pink), var(--blue));
+    --social-glow-gradient: linear-gradient(90deg, var(--blue), var(--red), var(--green), var(--yellow), var(--purple), var(--orange), var(--mint), var(--gold), var(--pink), var(--blue));
 
     /* Responsive typography (mobile-first) */
     --font-size-name: 3.5rem;
@@ -278,11 +278,18 @@ body {
     text-align: center;
 }
 
-.linkedin-container {
+.social-links {
     opacity: 0;
-    animation: fadeInLinkedIn 1s ease-in-out forwards;
+    animation: fadeInSocial 1s ease-in-out forwards;
     animation-delay: 1.5s;
     margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.social-link {
     width: 3rem;
     height: 3rem;
     display: flex;
@@ -292,13 +299,13 @@ body {
     z-index: 1;
 }
 
-.linkedin-glow {
+.social-glow {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--linkedin-glow-gradient);
+    background: var(--social-glow-gradient);
     background-size: 200%;
     border-radius: 10%;
     opacity: 0;
@@ -307,12 +314,16 @@ body {
     transition: opacity 0.3s ease;
 }
 
-.linkedin-container:hover .linkedin-glow {
+.social-link[data-shape="circle"] .social-glow {
+    border-radius: 50%;
+}
+
+.social-link:hover .social-glow {
     opacity: 0.7;
     animation: glowAnimate 4s linear infinite;
 }
 
-.linkedin-svg {
+.social-svg {
     width: 3rem;
     height: 3rem;
     fill: white;
@@ -320,7 +331,17 @@ body {
     z-index: 2;
 }
 
-.linkedin-container:hover .linkedin-svg {
+.social-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    display: block;
+    transition: transform 0.3s ease;
+    z-index: 2;
+}
+
+.social-link:hover .social-svg,
+.social-link:hover .social-avatar {
     transform: scale(1.05);
 }
 
@@ -334,7 +355,7 @@ body {
     }
 }
 
-@keyframes fadeInLinkedIn {
+@keyframes fadeInSocial {
     0% {
         opacity: 0;
     }
@@ -364,7 +385,7 @@ body {
     outline-offset: -2px;
 }
 
-.linkedin-container a:focus-visible {
+.social-link a:focus-visible {
     outline: 2px solid var(--head-color);
     outline-offset: 4px;
     border-radius: 4px;
@@ -413,7 +434,7 @@ body {
         --head-container-margin: calc(var(--head-container-height) * -0.07);
     }
 
-    .linkedin-container {
+    .social-links {
         margin-top: 0.5rem;
     }
 }
@@ -425,12 +446,13 @@ body {
         opacity: 1;
     }
 
-    .linkedin-container {
+    .social-links {
         animation: none;
         opacity: 1;
     }
 
-    .linkedin-svg {
+    .social-svg,
+    .social-avatar {
         animation: none;
     }
 }

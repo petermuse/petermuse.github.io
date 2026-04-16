@@ -606,10 +606,10 @@ function initThreeJS() {
             }
         });
 
-        // --- LinkedIn Hover Event Listeners ---
-        const linkedinContainer = document.querySelector('.linkedin-container');
-        if (linkedinContainer) {
-            linkedinContainer.addEventListener('mouseenter', () => {
+        // --- Social link hover event listeners (covers YouTube + LinkedIn) ---
+        const socialLinks = document.querySelector('.social-links');
+        if (socialLinks) {
+            socialLinks.addEventListener('mouseenter', () => {
                 // Only switch to AWED from NORMAL or WHISTLING states during waking hours
                 if (!isCaliforniaSleepTime() && (currentState === STATE.NORMAL || currentState === STATE.WHISTLING)) {
                     lastActivity = Date.now(); // Register hover as activity
@@ -617,7 +617,7 @@ function initThreeJS() {
                 }
             });
 
-            linkedinContainer.addEventListener('mouseleave', () => {
+            socialLinks.addEventListener('mouseleave', () => {
                 // Only switch back from AWED state
                 if (currentState === STATE.AWED) {
                     // Check inactivity again to decide if it should go to WHISTLING or NORMAL
@@ -631,7 +631,7 @@ function initThreeJS() {
             });
         } else {
             document.getElementById('head-container').innerHTML = '<div style="color: #0f0; font-family: monospace; margin: 20px; text-align: center;" data-nosnippet>' +
-                'LinkedIn container not found. Please reload the page.</div>';
+                'Social links container not found. Please reload the page.</div>';
         }
 
         // Track which button should be active. Panel is injected lazily on Konami;
