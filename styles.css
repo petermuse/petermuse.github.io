@@ -162,7 +162,8 @@ body {
     padding: 0;
     text-rendering: optimizeLegibility;
     font-kerning: normal;
-    letter-spacing: 0.03em;
+    /* Tracking at 0 — let the per-letter em nudges below own the rhythm */
+    letter-spacing: 0;
     -webkit-font-smoothing: antialiased;
     will-change: opacity;
     -webkit-user-select: none;
@@ -178,7 +179,7 @@ body {
 }
 
 .first-name {
-    margin-bottom: 0.05em;
+    margin-bottom: 0.04em;
 }
 
 @keyframes letterGlow {
@@ -211,61 +212,63 @@ body {
     contain: layout;
 }
 
+/* Per-letter kerning in em (not rem) so the fit holds identical at every
+   breakpoint as --font-size-name scales from mobile to desktop. */
 .letter-p {
-    margin-right: -0.05rem;
+    margin-right: -0.015em;
     color: var(--blue);
     animation-delay: 0.1s;
 }
 
 .letter-e1 {
-    margin-left: -0.07rem;
-    margin-right: -0.06rem;
+    margin-left: -0.012em;
+    margin-right: -0.010em;
     color: var(--red);
     animation-delay: 0.3s;
 }
 
 .letter-t {
-    margin-left: -0.085rem;
-    margin-right: -0.06rem;
+    margin-left: -0.030em;
+    margin-right: -0.022em;
     color: var(--green);
     animation-delay: 0.5s;
 }
 
 .letter-e2 {
-    margin-left: -0.075rem;
-    margin-right: -0.06rem;
+    margin-left: -0.012em;
+    margin-right: -0.010em;
     color: var(--yellow);
     animation-delay: 0.7s;
 }
 
 .letter-r {
-    margin-left: -0.08rem;
+    margin-left: -0.020em;
     color: var(--purple);
     animation-delay: 0.9s;
 }
 
 .letter-m {
-    margin-right: -0.05rem;
+    margin-right: -0.012em;
     color: var(--orange);
     animation-delay: 1.1s;
 }
 
 .letter-u {
-    margin-left: -0.07rem;
-    margin-right: -0.06rem;
+    margin-left: -0.012em;
+    margin-right: -0.010em;
     color: var(--mint);
     animation-delay: 1.3s;
 }
 
 .letter-s {
-    margin-left: -0.085rem;
-    margin-right: -0.06rem;
+    margin-left: -0.028em;
+    margin-right: -0.018em;
     color: var(--gold);
     animation-delay: 1.5s;
 }
 
 .letter-e3 {
-    margin-left: -0.075rem;
+    margin-left: -0.012em;
     color: var(--pink);
     animation-delay: 1.7s;
 }
@@ -282,11 +285,11 @@ body {
     opacity: 0;
     animation: fadeInSocial 1s ease-in-out forwards;
     animation-delay: 1.5s;
-    margin-top: 2rem;
+    margin-top: 1.6rem;
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1.25rem;
+    gap: 1.4rem;
 }
 
 .social-link {
@@ -332,8 +335,10 @@ body {
 }
 
 .social-avatar {
-    width: 3rem;
-    height: 3rem;
+    /* Photo fills its circle, so it out-weighs the LinkedIn glyph at equal
+       size — pull it to ~46px so the two shapes read evenly weighted. */
+    width: 2.875rem;
+    height: 2.875rem;
     border-radius: 50%;
     display: block;
     transition: transform 0.3s ease;
