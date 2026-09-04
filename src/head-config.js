@@ -1,0 +1,36 @@
+export const ANIMATION = {
+    MOUSE_SENSITIVITY_X: 0.05,
+    MOUSE_SENSITIVITY_Y: 0.02,
+    ROTATION_SPEED_NORMAL: 0.1,
+    ROTATION_SPEED_WHISTLING: 0.03,
+    ROTATION_SPEED_GIGGLING: 0.05,
+    GIGGLE_DURATION_MS: 2000,
+    GIGGLE_FREQUENCY: 0.02,
+    GIGGLE_AMPLITUDE: 0.03,
+    INACTIVITY_THRESHOLD_MS: 10000,
+    // Distances per second, preserving the original motion at 60 Hz.
+    ZZZ_FLOAT_SPEED: 0.18,
+    ZZZ_RESET_Y: 2.5,
+    NOTE_FLOAT_SPEED_Y: 0.24,
+    NOTE_FLOAT_SPEED_X: 0.06,
+    NOTE_RESET_Y: 2.5,
+    WHISTLE_SWAY_SPEED: 0.5,
+    WHISTLE_SWAY_AMOUNT: 0.02,
+    PULSE_BASE_OPACITY: 0.7,
+    PULSE_AMPLITUDE: 0.1,
+    SLEEP_OPACITY: 0.8,
+    LINE_WIDTH_BASE: 1.5,
+    SLEEP_HOURS_START: 22,
+    SLEEP_HOURS_END: 6,
+};
+
+export const STATE = {
+    SLEEPING: 'sleeping',
+    WHISTLING: 'whistling',
+    NORMAL: 'normal',
+    GIGGLING: 'giggling',
+    AWED: 'awed',
+};
+
+export const CANVAS_TOP_EXTENSION = 0.25;
+export const MAX_PIXEL_RATIO = 2;
