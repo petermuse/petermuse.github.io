@@ -44,4 +44,10 @@ const htmlPath = resolve(root, 'index.html');
 const html = await readFile(htmlPath, 'utf8');
 const scriptSource = /src="assets\/js\/main\.js(?:\?v=[a-f0-9]+)?"/;
 if (!scriptSource.test(html)) throw new Error('Homepage animation script tag was not found.');
-await writeFile(htmlPath, html.replace(scriptSource, `src="assets/js/main.js?v=${version}"`));
+const styles = await readFile(resolve(root, 'styles.css'));
+const styleVersion = createHash('sha256').update(styles).digest('hex').slice(0, 12);
+const stylesheet = /href="styles\.css(?:\?v=[a-f0-9]+)?"/;
+if (!stylesheet.test(html)) throw new Error('Homepage stylesheet link was not found.');
+await writeFile(htmlPath, html
+  .replace(scriptSource, `src="assets/js/main.js?v=${version}"`)
+  .replace(stylesheet, `href="styles.css?v=${styleVersion}"`));

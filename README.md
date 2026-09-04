@@ -44,7 +44,7 @@ After editing JavaScript source, run `npm test` and `npm run build`, preview the
 page, and include the resulting `assets/js/` files with the source changes. The
 generated files are intentionally checked in so the existing GitHub Pages setup
 can publish the repository root without a server or an additional build step.
-The build also updates the HTML's `assets/js/main.js?v=…` reference with a content
-hash so browsers fetch the matching startup script after a deployment. Include
-that `index.html` update when publishing. The entry references the generated
+The build also updates the HTML's `assets/js/main.js?v=…` and `styles.css?v=…`
+references with content hashes so browsers fetch the matching script and styles
+after a deployment. Include that `index.html` update when publishing. The entry references the generated
 deferred chunks; retaining older chunks protects visitors with cached pages.
