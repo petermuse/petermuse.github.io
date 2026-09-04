@@ -34,7 +34,8 @@ Then open <http://localhost:8000>. JavaScript modules need an HTTP server; openi
   source used by the build.
 - `assets/js/` contains generated, minified browser modules. The build removes
   unused code, preserves license notices, and gives deferred chunks content hashes.
-  This directory is replaced on each successful build; do not edit it by hand.
+  Previously published chunks are retained so cached pages can still load them.
+  Do not edit generated files by hand.
 - `tests/` contains checks run with Node's built-in test runner.
 
 ## Publishing
@@ -43,4 +44,7 @@ After editing JavaScript source, run `npm test` and `npm run build`, preview the
 page, and include the resulting `assets/js/` files with the source changes. The
 generated files are intentionally checked in so the existing GitHub Pages setup
 can publish the repository root without a server or an additional build step.
-The HTML loads `assets/js/main.js`, which references the generated deferred chunks.
+The build also updates the HTML's `assets/js/main.js?v=…` reference with a content
+hash so browsers fetch the matching startup script after a deployment. Include
+that `index.html` update when publishing. The entry references the generated
+deferred chunks; retaining older chunks protects visitors with cached pages.

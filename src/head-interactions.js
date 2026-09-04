@@ -15,14 +15,20 @@ export function bindHeadInteractions({
         removers.push(() => target.removeEventListener(type, callback, options));
     }
 
-    // Mouse/pen tracking remains page-wide. Touch tracking belongs to the head;
-    // native scroll and pinch gestures are never canceled.
+    // Mouse/pen tracking remains page-wide. The canvas reserves one-finger drags
+    // in CSS; pinch zoom and scrolling elsewhere retain their native behavior.
     listen(documentObject, 'pointermove', event => {
         if (event.pointerType === 'touch') return;
         onActivity();
         onPointerMove(event, false);
     }, { passive: true });
     listen(documentObject, 'pointerdown', onActivity, { passive: true });
+    listen(canvas, 'pointerdown', event => {
+        if (event.pointerType !== 'touch' || !event.isPrimary) return;
+        // React at first contact, including a stationary tap. Activity is recorded
+        // once when this same event bubbles to the document.
+        onPointerMove(event, true);
+    }, { passive: true });
     listen(canvas, 'pointermove', event => {
         if (event.pointerType !== 'touch' || !event.isPrimary) return;
         onActivity();

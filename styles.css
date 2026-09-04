@@ -129,6 +129,8 @@ body {
 
 #head-container canvas {
     display: block;
+    /* Keep one-finger head tracking active on iOS while allowing pinch zoom. */
+    touch-action: pinch-zoom;
     position: absolute;
     bottom: 0;
     /* Anchor to bottom so extra space is above */

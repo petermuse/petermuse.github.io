@@ -1,4 +1,5 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -25,8 +26,7 @@ const result = await build({
   write: false,
 });
 
-// This directory contains only generated files; remove obsolete hashed chunks.
-await rm(outdir, { recursive: true, force: true });
+// Keep previously published chunks available for visitors with cached entry scripts.
 await mkdir(outdir, { recursive: true });
 for (const file of result.outputFiles) {
   await mkdir(dirname(file.path), { recursive: true });
@@ -35,3 +35,13 @@ for (const file of result.outputFiles) {
   const gzipSize = (gzipSync(file.contents).length / 1024).toFixed(1);
   console.log(`${relative(root, file.path)}: ${size} KiB (${gzipSize} KiB gzip)`);
 }
+
+// A fresh page must request the matching entry script, even when an older version
+// of main.js is cached by the browser or GitHub Pages' CDN.
+const entry = result.outputFiles.find(file => file.path === resolve(outdir, 'main.js'));
+const version = createHash('sha256').update(entry.contents).digest('hex').slice(0, 12);
+const htmlPath = resolve(root, 'index.html');
+const html = await readFile(htmlPath, 'utf8');
+const scriptSource = /src="assets\/js\/main\.js(?:\?v=[a-f0-9]+)?"/;
+if (!scriptSource.test(html)) throw new Error('Homepage animation script tag was not found.');
+await writeFile(htmlPath, html.replace(scriptSource, `src="assets/js/main.js?v=${version}"`));

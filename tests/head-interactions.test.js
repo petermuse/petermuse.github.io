@@ -35,14 +35,37 @@ test('mouse and pen movement track across the page', t => {
 
 test('touch outside the canvas and secondary canvas touches do not track', t => {
     const { documentObject, canvas, onPointerMove, onActivity } = setup(t);
+    documentObject.dispatchEvent(inputEvent('pointerdown', {
+        pointerType: 'touch', isPrimary: true,
+    }));
     documentObject.dispatchEvent(inputEvent('pointermove', {
         pointerType: 'touch', isPrimary: true,
+    }));
+    canvas.dispatchEvent(inputEvent('pointerdown', {
+        pointerType: 'touch', isPrimary: false,
     }));
     canvas.dispatchEvent(inputEvent('pointermove', {
         pointerType: 'touch', isPrimary: false,
     }));
+    for (const pointerType of ['mouse', 'pen']) {
+        canvas.dispatchEvent(inputEvent('pointerdown', { pointerType, isPrimary: true }));
+    }
     assert.equal(onPointerMove.mock.callCount(), 0);
-    assert.equal(onActivity.mock.callCount(), 0);
+    assert.equal(onActivity.mock.callCount(), 1, 'outside contact still records activity');
+});
+
+test('a primary canvas touch tracks immediately without waiting for movement', t => {
+    const { documentObject, canvas, onPointerMove, onActivity, onActivate } = setup(t);
+    const event = inputEvent('pointerdown', {
+        pointerType: 'touch', isPrimary: true, clientX: 75, clientY: 90,
+    });
+    canvas.dispatchEvent(event);
+    documentObject.dispatchEvent(event);
+    assert.deepEqual(onPointerMove.mock.calls[0].arguments, [event, true]);
+    assert.equal(onPointerMove.mock.callCount(), 1);
+    assert.equal(onActivity.mock.callCount(), 1, 'bubbling must not record activity twice');
+    assert.equal(onActivate.mock.callCount(), 0, 'contact alone is not a tap activation');
+    assert.equal(event.defaultPrevented, false);
 });
 
 test('a primary canvas touch tracks once when it reaches the document', t => {
@@ -64,6 +87,7 @@ test('pointer and touch gestures retain their native default behavior', t => {
         [documentObject, 'pointermove', { pointerType: 'mouse' }],
         [documentObject, 'pointermove', { pointerType: 'touch', isPrimary: true }],
         [documentObject, 'pointerdown', { pointerType: 'touch', isPrimary: true }],
+        [canvas, 'pointerdown', { pointerType: 'touch', isPrimary: true }],
         [canvas, 'pointermove', { pointerType: 'touch', isPrimary: true }],
         [canvas, 'touchstart', {}],
         [canvas, 'touchmove', {}],
@@ -74,6 +98,34 @@ test('pointer and touch gestures retain their native default behavior', t => {
         assert.equal(target.dispatchEvent(event), true, type);
         assert.equal(event.defaultPrevented, false, type);
     }
+});
+
+test('browser cancellation for a pinch does not activate the head or block later touch tracking', t => {
+    const { documentObject, canvas, onPointerMove, onActivate } = setup(t);
+    // Model the pointer sequence sent when the browser takes ownership of a pinch.
+    // Native gesture recognition itself requires a browser/device test.
+    const gestures = [
+        ['pointerdown', { pointerId: 1, isPrimary: true, clientX: 75, clientY: 90 }],
+        ['pointerdown', { pointerId: 2, isPrimary: false, clientX: 150, clientY: 90 }],
+        ['pointercancel', { pointerId: 1, isPrimary: true }],
+        ['pointercancel', { pointerId: 2, isPrimary: false }],
+    ];
+    for (const [type, properties] of gestures) {
+        const event = inputEvent(type, { pointerType: 'touch', ...properties });
+        canvas.dispatchEvent(event);
+        documentObject.dispatchEvent(event);
+        assert.equal(event.defaultPrevented, false);
+    }
+    assert.equal(onPointerMove.mock.callCount(), 1, 'secondary contact cannot change the pose');
+    assert.equal(onActivate.mock.callCount(), 0, 'a canceled gesture is not a tap');
+
+    const nextTouch = inputEvent('pointerdown', {
+        pointerType: 'touch', pointerId: 3, isPrimary: true, clientX: 100, clientY: 110,
+    });
+    canvas.dispatchEvent(nextTouch);
+    documentObject.dispatchEvent(nextTouch);
+    assert.equal(onPointerMove.mock.callCount(), 2);
+    assert.deepEqual(onPointerMove.mock.calls.at(-1).arguments, [nextTouch, true]);
 });
 
 test('a touch tap activates only through its synthesized click', t => {
@@ -142,6 +194,7 @@ test('disposing removes every interaction listener', t => {
 
     documentObject.dispatchEvent(inputEvent('pointermove', { pointerType: 'mouse' }));
     documentObject.dispatchEvent(inputEvent('pointerdown', { pointerType: 'touch' }));
+    canvas.dispatchEvent(inputEvent('pointerdown', { pointerType: 'touch', isPrimary: true }));
     canvas.dispatchEvent(inputEvent('pointermove', { pointerType: 'touch', isPrimary: true }));
     canvas.dispatchEvent(inputEvent('click'));
     const enter = inputEvent('keydown', { key: 'Enter' });
