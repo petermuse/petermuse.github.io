@@ -115,7 +115,7 @@ export function initHead({
     function recordActivity(event) {
         lastActivity = windowObject.performance.now();
         const activeState = model.state === STATE.WHISTLING
-            || (event?.type === 'keydown' && model.state === STATE.AWED);
+            || (['keydown', 'touchstart'].includes(event?.type) && model.state === STATE.AWED);
         if (motionAllowed() && autoStateEnabled && activeState && !isCaliforniaSleepTime()) {
             switchToState(STATE.NORMAL);
         }

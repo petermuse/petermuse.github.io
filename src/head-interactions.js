@@ -15,25 +15,22 @@ export function bindHeadInteractions({
         removers.push(() => target.removeEventListener(type, callback, options));
     }
 
-    // Mouse/pen tracking remains page-wide. The canvas reserves one-finger drags
-    // in CSS; pinch zoom and scrolling elsewhere retain their native behavior.
+    // Pointer streams can be canceled when Safari starts scrolling. Observe
+    // touches separately so page-wide tracking can coexist with native gestures.
     listen(documentObject, 'pointermove', event => {
         if (event.pointerType === 'touch') return;
         onActivity();
         onPointerMove(event, false);
     }, { passive: true });
-    listen(documentObject, 'pointerdown', onActivity, { passive: true });
-    listen(canvas, 'pointerdown', event => {
-        if (event.pointerType !== 'touch' || !event.isPrimary) return;
-        // React at first contact, including a stationary tap. Activity is recorded
-        // once when this same event bubbles to the document.
-        onPointerMove(event, true);
+    listen(documentObject, 'pointerdown', event => {
+        if (event.pointerType !== 'touch') onActivity(event);
     }, { passive: true });
-    listen(canvas, 'pointermove', event => {
-        if (event.pointerType !== 'touch' || !event.isPrimary) return;
-        onActivity();
-        onPointerMove(event, true);
-    }, { passive: true });
+    function trackTouch(event) {
+        onActivity(event);
+        if (event.touches.length === 1) onPointerMove(event.touches[0], true);
+    }
+    listen(documentObject, 'touchstart', trackTouch, { passive: true });
+    listen(documentObject, 'touchmove', trackTouch, { passive: true });
 
     // The browser synthesizes a click for a tap, avoiding duplicate touch/click paths.
     listen(canvas, 'click', event => onActivate(event));
@@ -55,7 +52,13 @@ export function bindHeadInteractions({
             konamiIndex = 0;
         }
     });
-    listen(socialLinks, 'mouseenter', onSocialEnter);
-    listen(socialLinks, 'mouseleave', onSocialLeave);
+    // Touch taps may synthesize mouseenter without a matching mouseleave.
+    // Pointer events identify real mouse/pen hover without those sticky states.
+    listen(socialLinks, 'pointerenter', event => {
+        if (event.pointerType !== 'touch') onSocialEnter();
+    });
+    listen(socialLinks, 'pointerleave', event => {
+        if (event.pointerType !== 'touch') onSocialLeave();
+    });
     return () => removers.forEach(remove => remove());
 }

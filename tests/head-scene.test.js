@@ -72,8 +72,8 @@ function expressionOf(head) {
     return points.getX(0) < -0.375 ? 'giggling' : 'normal';
 }
 
-function setup(t, { reduced = false } = {}) {
-    t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-09-04T19:00:00Z') });
+function setup(t, { reduced = false, date = '2026-09-04T19:00:00Z' } = {}) {
+    t.mock.timers.enable({ apis: ['Date'], now: new Date(date) });
     const container = new Element();
     Object.assign(container, { id: 'head-container', clientWidth: 320, clientHeight: 240 });
     const nameElement = new Element('h1');
@@ -207,6 +207,12 @@ test('initial reduced motion renders a finite static head without frames or recu
     assertFiniteScene(app.renderer);
 
     app.documentObject.dispatchEvent(event('pointermove', { pointerType: 'mouse', clientX: 900, clientY: 600 }));
+    app.documentObject.dispatchEvent(event('touchstart', {
+        touches: [{ clientX: 10, clientY: 760, target: app.documentObject.body }],
+    }));
+    app.documentObject.dispatchEvent(event('touchmove', {
+        touches: [{ clientX: 20, clientY: 740, target: app.documentObject.body }],
+    }));
     app.canvas.dispatchEvent(event('click', { clientX: 260, clientY: 200 }));
     app.container.dispatchEvent(event('keydown', { key: 'Enter' }));
     assert.equal(app.frames.size, 0);
@@ -237,6 +243,103 @@ test('changing the motion preference resumes cursor following and returns to a s
     assert.deepEqual(app.renderer.last.rotation, [0, 0, 0], 'resuming must not restore stale cursor movement');
     assert.equal(app.frames.size, 1);
     assert.equal(app.intervals.size, 1);
+});
+
+test('touches in the footer and empty page space move the actual head immediately', t => {
+    const app = setup(t);
+    app.frame();
+    const initialScale = app.renderer.head.scale.toArray();
+    const initialCanvasSize = [app.renderer.width, app.renderer.height];
+
+    // Both locations lie below the canvas (whose bottom is y=350). The original
+    // contact target stays on the Touch object as the gesture reaches document.
+    const footerTouch = event('touchstart', {
+        touches: [{ clientX: 410, clientY: 500, target: app.socialLinks }],
+    });
+    app.documentObject.dispatchEvent(footerTouch);
+    app.frame();
+    assert.ok(app.renderer.last.rotation[0] > 0, 'first contact tilts toward the footer');
+    assert.ok(app.renderer.last.rotation[1] > 0);
+    assert.equal(app.renderer.last.expression, 'normal', 'a footer contact is not a head activation');
+    assert.equal(footerTouch.defaultPrevented, false);
+
+    app.documentObject.dispatchEvent(event('touchend', { touches: [] }));
+    const backgroundTouch = event('touchstart', {
+        touches: [{ clientX: 10, clientY: 760, target: app.documentObject.body }],
+    });
+    app.documentObject.dispatchEvent(backgroundTouch);
+    for (let index = 0; index < 20; index++) app.frame();
+    assert.ok(app.renderer.last.rotation[0] > 0);
+    assert.ok(app.renderer.last.rotation[1] < 0, 'empty page space can reverse the tracking direction');
+    assert.equal(backgroundTouch.defaultPrevented, false);
+    assert.deepEqual(app.renderer.head.scale.toArray(), initialScale);
+    assert.deepEqual([app.renderer.width, app.renderer.height], initialCanvasSize);
+    assertFiniteScene(app.renderer);
+});
+
+test('page-wide touch activity exits idle whistling and an existing mouse hover', t => {
+    const app = setup(t);
+    app.frame();
+    app.runIntervals(11000);
+    app.frame();
+    assert.equal(app.renderer.last.expression, 'whistling');
+    assert.equal(app.renderer.last.notesVisible, true);
+
+    const touch = () => app.documentObject.dispatchEvent(event('touchstart', {
+        touches: [{ clientX: 10, clientY: 760, target: app.documentObject.body }],
+    }));
+    touch();
+    app.frame();
+    assert.equal(app.renderer.last.expression, 'normal');
+    assert.equal(app.renderer.last.notesVisible, false);
+
+    app.socialLinks.dispatchEvent(event('pointerenter', { pointerType: 'mouse' }));
+    app.frame();
+    assert.equal(app.renderer.last.expression, 'awed');
+    touch();
+    app.frame();
+    assert.equal(app.renderer.last.expression, 'normal', 'touch recovers even without a mouse leave');
+
+    app.socialLinks.dispatchEvent(event('pointerenter', { pointerType: 'touch' }));
+    app.socialLinks.dispatchEvent(event('mouseenter'));
+    app.frame();
+    assert.equal(app.renderer.last.expression, 'normal', 'touch and compatibility mouse hover cannot stick');
+    app.runIntervals(11000);
+    app.frame();
+    assert.equal(app.renderer.last.expression, 'whistling', 'idle behavior still resumes after touch');
+});
+
+test('touch tracking respects California sleeping hours and resumes at the morning boundary', t => {
+    const app = setup(t, { date: '2026-09-05T04:59:00Z' }); // 9:59 PM Pacific.
+    app.frame();
+    const touch = () => app.documentObject.dispatchEvent(event('touchstart', {
+        touches: [{ clientX: 10, clientY: 760, target: app.documentObject.body }],
+    }));
+    touch();
+    app.frame();
+    assert.notEqual(app.renderer.last.rotation[1], 0);
+
+    t.mock.timers.setTime(new Date('2026-09-05T05:00:00Z').getTime());
+    app.runIntervals(1000);
+    app.frame();
+    assert.equal(app.renderer.last.zzzVisible, true);
+    assert.deepEqual(app.renderer.last.rotation, [0, 0, 0]);
+    touch();
+    app.canvas.dispatchEvent(event('click', { clientX: 260, clientY: 200 }));
+    app.frame();
+    assert.equal(app.renderer.last.zzzVisible, true);
+    assert.deepEqual(app.renderer.last.rotation, [0, 0, 0], 'sleeping head does not follow touches');
+    assert.notEqual(app.renderer.last.expression, 'giggling');
+
+    t.mock.timers.setTime(new Date('2026-09-05T13:00:00Z').getTime()); // 6 AM Pacific.
+    app.runIntervals(1000);
+    touch();
+    app.frame();
+    assert.equal(app.renderer.last.zzzVisible, false);
+    assert.equal(app.renderer.last.expression, 'normal');
+    assert.ok(app.renderer.last.rotation[0] > 0);
+    assert.ok(app.renderer.last.rotation[1] < 0);
+    assertFiniteScene(app.renderer);
 });
 
 test('visibility and page-cache lifecycle stop and restart a single animation loop', t => {
@@ -350,7 +453,7 @@ test('a manual Whistling choice persists across reduced-motion changes', t => {
 
 test('an interrupted social hover clears on hiding and cannot prevent later idle animation', t => {
     const app = setup(t);
-    app.socialLinks.dispatchEvent(event('mouseenter'));
+    app.socialLinks.dispatchEvent(event('pointerenter', { pointerType: 'mouse' }));
     app.frame();
     assert.equal(app.renderer.last.expression, 'awed');
     app.documentObject.hidden = true;
